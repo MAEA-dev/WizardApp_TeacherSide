@@ -1,11 +1,47 @@
 import {Stack} from 'expo-router';
 import { KeyboardProvider} from 'react-native-keyboard-controller';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  Nunito_500Medium,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+} from "@expo-google-fonts/nunito"
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter'
+
+
 export default function RootLayout() {
+
+ const [fontsLoaded] = useFonts({
+  Nunito_500Medium,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+});
+
+ if (!fontsLoaded) {
+   console.log('Nunito is still loading...');
+   return null;
+ }
+
+ console.log('fonts are ready!');
+
+
   return (
-    <KeyboardProvider>
-      <Stack screenOptions={{headerShown: false}}>
-        <Stack.Screen name="index" />
-      </Stack>
-    </KeyboardProvider>
+    <SafeAreaProvider>
+      <KeyboardProvider>
+          <Stack screenOptions={{headerShown: false}}>
+            <Stack.Screen name="index" />
+          </Stack>
+        </KeyboardProvider>
+    </SafeAreaProvider>
   );
 }

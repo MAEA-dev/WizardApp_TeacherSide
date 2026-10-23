@@ -20,10 +20,11 @@ import Feather from '@expo/vector-icons/Feather';
 import Fontisto from '@expo/vector-icons/Fontisto';
 
 import { Colors } from '../../constant/colors';
-
+import { Nunito, Inter } from '../../constant/fonts';
 import AnimatedView from '../../components/Animation/AnimatedView';
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
 import AnimatedText from '../../components/Animation/Animatedtext';
+
 
 
 
@@ -177,6 +178,7 @@ export default function Login() {
               <TouchableOpacity
                 style={styles.button}
                 activeOpacity={0.8}
+                onPress={() => router.replace("/(tabs)/home")}
               >
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
@@ -250,7 +252,7 @@ const styles = StyleSheet.create({
   },
 
   welcomeTitle: {
-    fontWeight: '800',
+    fontFamily: Inter.bold,
     fontSize: 36,
     marginBottom: 6,
     color: Colors.surface,
@@ -265,7 +267,7 @@ const styles = StyleSheet.create({
 
   welcomeSubtitle: {
     fontSize: 16,
-    fontWeight: '300',
+    fontFamily:"Nunito_500Medium",
     lineHeight: 22,
     color: Colors.surface,
     flexShrink: 1,
