@@ -1,24 +1,36 @@
 import {View, Text, StyleSheet, 
-        Image
+        Image, TouchableOpacity
 } from "react-native";
 import {Colors , Opacity} from "../../constant/colors"
-import { Nunito } from "../../constant/fonts";
-import ProgressBar  from "../other/ProgressBar"
-export default function SubjectCard({subjectName , grade, color}){
+import { Fredoka, Nunito } from "../../constant/fonts";
+import ProgressBar  from "../other/ProgressBar";
+import { useRouter } from "expo-router";
+
+
+export default function SubjectCard({id, subjectName , grade, color}){
     
+    const router = useRouter();
+
 
     return(
 
         <View style={[styles.card, {backgroundColor: Colors.bg, borderColor: color + Opacity[20], borderWidth:1 }]}>
 
-            <View style={styles.container}>
+            <View style={styles.headerContainer}>
                 <View style={[styles.ImageContainer, {backgroundColor: color + Opacity[40]} ]}>
                      <Image source={require("../../assets/subjectIcon.png")} style={{width: "90%", height: "90%"}}/>
                 </View>
-                <View style={{marginLeft: 10,maxWidth: 250}}>
+                <View style={styles.titleBox}>
                         <Text style={styles.subjectText} numberOfLines={1} ellipsizeMode="tail">{subjectName}</Text>
                         <Text style={[styles.gradeText, {color: color + Opacity[70]}]}>Grade {grade}</Text>
                </View>
+                
+                    <TouchableOpacity style={styles.button} onPress={() => {
+                                                                    console.log("Open pressed, id =", id);
+                                                                    router.push(`/subject/${id}`);}}>
+                        <Text style={styles.btnText}>Open</Text>
+                    </TouchableOpacity>
+                
             </View>
 
             <View style={[styles.container, {justifyContent:"center", gap:10,}]}>
@@ -53,8 +65,16 @@ const styles = StyleSheet.create({
       padding: 10,
       marginHorizontal: 5,
       marginVertical: 10,
-      elevation: 5,
       overflow:"hidden"
+    },
+    headerContainer:{
+        flexDirection: "row",
+        alignContent: "center"
+    },
+    titleBox:{
+        flex: 1,
+        minWidth: 0,
+        marginHorizontal: 10
     },
     container:{
         flexDirection: "row",
@@ -97,6 +117,18 @@ const styles = StyleSheet.create({
     },
     footer:{
         paddingHorizontal: 5
-        
+    },
+    button:{
+        maxHeight: 50,
+        padding: 10,
+        backgroundColor: Colors.success,
+        borderRadius: 15,
+        justifyContent: "center",
+        alignContent: "center"
+    },
+    btnText:{
+        fontFamily: Fredoka.semiBold,
+        fontSize: 18,
+        color: Colors.bg
     }
 });

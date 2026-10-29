@@ -1,7 +1,10 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../constant/colors';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Colors , Opacity} from '../../constant/colors';
+import { Shadows, TextShadows } from '../../constant/shadows';
+import { Fredoka } from '../../constant/fonts';
 
-export default function HomeHeader({name="teacher Name"}) {
+
+export default function HomeHeader({name="teacher Name", gender = "male"}) {
 
   const firstLetter = name?.trim().charAt(0).toUpperCase() || '';
 
@@ -13,11 +16,13 @@ export default function HomeHeader({name="teacher Name"}) {
             <Text style={styles.letter}>{firstLetter}</Text>
          </View>
 
-         <View>
-            <Text>Hello </Text>
-           <Text>{name}</Text>
+         <View style={{flex:1}}>
+            <Text style={styles.greetingText}>Hello , {gender === "male" ? "Sir":"Ma'am"} </Text>
+           <Text style={styles.teacherNameText}>{name}</Text>
          </View>
-
+          <TouchableOpacity style={styles.button}>
+              <Text style={styles.addText}>Add class</Text>
+          </TouchableOpacity>
       </View> 
     </View>
   );
@@ -30,9 +35,9 @@ const styles = StyleSheet.create({
     minHeight: 90,
     justifyContent: 'center',
     alignItems: 'flex-start',
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    margin: 1,
+    margin: 2,
+   borderBottomLeftRadius: 25,
+   borderBottomRightRadius: 25
   },
   header:{
     flexDirection: "row",
@@ -42,18 +47,47 @@ const styles = StyleSheet.create({
   },
 
   circle: {
-    width: 60,
-    height: 60,
-    borderRadius: 45,
-    backgroundColor: '#FFFFFF',
+    width: 50,
+    height: 50,
+    borderRadius: 30,
+    backgroundColor: Colors.lightBlue,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 4,
+    borderColor: Colors.primary + Opacity[30]
+    
   },
 
   letter: {
-    fontSize: 36,
-    fontWeight: '900',
+    fontFamily: Fredoka.bold,
+    fontSize: 33,
     color: Colors.primary,
-    
   },
+  greetingText: {
+    fontFamily: Fredoka.medium,
+    fontSize: 14,
+    color: Colors.bg,
+    ...TextShadows.subtle
+
+  },
+  teacherNameText:{
+    fontFamily: Fredoka.bold,
+    fontSize: 22,
+    textTransform: "capitalize",
+    color: Colors.bg,
+    ...TextShadows.medium
+  },
+  button: {
+    flexShrink: 0,
+    backgroundColor: Colors.warning,
+    padding: 10,
+    borderRadius: 20,
+    ...Shadows.large
+  },
+   addText:{
+      fontFamily: Fredoka.semiBold,
+      fontSize: 15,
+      color: Colors.bg,
+      ...TextShadows.subtle
+  }
 });

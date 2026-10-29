@@ -14,7 +14,10 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter'
 
-
+import { Fredoka_400Regular } from '@expo-google-fonts/fredoka/400Regular';
+import { Fredoka_500Medium } from '@expo-google-fonts/fredoka/500Medium';
+import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka/600SemiBold';
+import { Fredoka_700Bold } from '@expo-google-fonts/fredoka/700Bold';
 export default function RootLayout() {
 
  const [fontsLoaded] = useFonts({
@@ -25,6 +28,10 @@ export default function RootLayout() {
   Inter_500Medium,
   Inter_600SemiBold,
   Inter_700Bold,
+  Fredoka_400Regular,
+  Fredoka_500Medium,
+  Fredoka_600SemiBold,
+  Fredoka_700Bold
 });
 
  if (!fontsLoaded) {
@@ -39,7 +46,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <KeyboardProvider>
           <Stack screenOptions={{headerShown: false}}>
-            <Stack.Screen name="index" />
+            
           </Stack>
         </KeyboardProvider>
     </SafeAreaProvider>

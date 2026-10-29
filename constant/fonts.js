@@ -10,3 +10,10 @@ export const Inter ={
    semiBold: 'Inter_600SemiBold',
    bold: 'Inter_700Bold',
 }
+
+export const Fredoka = {
+   regular: 'Fredoka_400Regular',
+   medium: 'Fredoka_500Medium',
+   semiBold: 'Fredoka_600SemiBold',
+   bold: 'Fredoka_700Bold',
+}

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import Animated, {
   cancelAnimation,
@@ -26,6 +25,7 @@ export default function AnimatedView({
   delay = 0,
   useSpring = false,
   playKey = 0,
+  hidden = false,
   style,
   ...props
 }) {
@@ -47,6 +47,9 @@ export default function AnimatedView({
     y.value = preset.y;
     scale.value = preset.scale;
 
+    
+    if (hidden) return;
+
     const animate = (value) =>
       useSpring
         ? withSpring(value)
@@ -66,7 +69,7 @@ export default function AnimatedView({
       cancelAnimation(y);
       cancelAnimation(scale);
     };
-  }, [playKey, animation, duration, delay, useSpring]);
+  }, [playKey, animation, duration, delay, useSpring, hidden]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -78,10 +81,7 @@ export default function AnimatedView({
   }));
 
   return (
-    <Animated.View
-      {...props}
-      style={[style, animatedStyle]}
-    >
+    <Animated.View {...props} style={[style, animatedStyle]}>
       {children}
     </Animated.View>
   );
