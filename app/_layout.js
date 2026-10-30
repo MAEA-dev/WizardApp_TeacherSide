@@ -1,6 +1,7 @@
 import {Stack} from 'expo-router';
 import { KeyboardProvider} from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaView} from 'react-native-safe-area-context';
 import {
   useFonts,
   Nunito_500Medium,
@@ -45,9 +46,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <KeyboardProvider>
+        <SafeAreaView style={{flex: 1}} edges={['top', 'left', 'right', 'bottom']}>
           <Stack screenOptions={{headerShown: false}}>
             
           </Stack>
+          </SafeAreaView>
         </KeyboardProvider>
     </SafeAreaProvider>
   );

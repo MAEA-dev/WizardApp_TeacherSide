@@ -1,15 +1,15 @@
 import { useState } from "react";
 import {View, Text, StyleSheet} from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from "expo-router";
 import { Colors } from "../../../constant/colors";
 import Header  from "../../../components/subject/header";
 import { Subjects } from "../../../Mocks/subjects";
 import SubjectTabs from "../../../components/subject/subjectTabs";
-import StudentsTab  from "../../../components/subject/tabs/StudentsTabs";
+import StudentsTab  from "../../../components/subject/tabs/StudentTabs/StudentsTabs";
 import OverviewTab from "../../../components/subject/tabs/OverviewTabs/OverviewTabs";
 import LessonsTab from "../../../components/subject/tabs/LessonTabs/LessonsTabs";
 import { Lessons } from "../../../Mocks/lesson";
+import { Students } from "../../../Mocks/students";
 import { User } from "../../../Mocks/user";
 
 const TABS = [
@@ -28,7 +28,7 @@ export default function SubjectDetails(){
     if(!subject) return <Text>Subject not found</Text>
 
     return(
-        <SafeAreaView style={{flex: 1, backgroundColor: Colors.bg}}>
+        <View style={{flex: 1, backgroundColor: Colors.bg}}>
             
             <View style={styles.header}>
                <Header subjectName={subject.name} grade={subject.grade}/>
@@ -38,10 +38,20 @@ export default function SubjectDetails(){
              <View style={styles.content}>
                     {activeTab === "lessons" && (<LessonsTab subjectId={subject.id} lessons={Lessons}  teacher={User}/>)}
                     {activeTab ==="overview" && (<OverviewTab  />)}
-                    {activeTab === "students" && (<StudentsTab />)}
+                                        {activeTab === "students" && (
+                                            <StudentsTab
+                                                students={Students}
+                                                onStudentPress={(student) =>
+                                                    router.push({
+                                                        pathname: "/subject/[id]/student/[studentId]",
+                                                        params: { id: String(id), studentId: String(student.id) },
+                                                    })
+                                                }
+                                            />
+                                        )}
             </View>
            
-        </SafeAreaView>
+        </View>
     );
 }
 

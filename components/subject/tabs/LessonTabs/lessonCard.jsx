@@ -1,7 +1,8 @@
-import {View, Text , StyleSheet, Image} from "react-native";
+import {View, Text , StyleSheet, Image, TouchableOpacity} from "react-native";
 import { Colors, Opacity } from "../../../../constant/colors";
 import { Fredoka, Nunito } from "../../../../constant/fonts";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from "expo-router";
 
 
 const ordinal = (n) => `${n}${["st", "nd", "rd", "th"][Math.min(n, 4) - 1] ?? "th"}`;
@@ -18,12 +19,21 @@ export const formatDate = (date) => {
 
 
 
-export default function LessonCard({title, teacher, status ="published", quarter=1}){
+export default function LessonCard({id, subjectId, title, teacher, status ="published", quarter=1}){
+    const router = useRouter();
     const isVerified = status === "published";
     const prefix = teacher?.gender === "Female" ? "Ms" : "Mr";
     const lastName = teacher?.lastName
     const date = Date.now()
     return(
+        <TouchableOpacity
+            onPress={() =>
+                router.push({
+                    pathname: "/subject/[id]/[lessonId]",
+                    params: { id: String(subjectId), lessonId: String(id) },
+                })
+            }
+        >
         <View style={styles.card}>
             <View style={styles.iconContainer}>
                     <View style={styles.Icon}>
@@ -63,6 +73,7 @@ export default function LessonCard({title, teacher, status ="published", quarter
                 <MaterialIcons name="keyboard-arrow-right" size={30} color="black" />
             </View>
         </View>
+        </TouchableOpacity>
     );
 }
 

@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
         fontSize: 12
     },
     dataTxt:{
-        fontFamily: Fredoka.bold,
-        fontSize: 20,
+        fontFamily: Fredoka.semiBold,
+        fontSize: 22,
     }
 });

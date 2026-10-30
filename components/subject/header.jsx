@@ -16,7 +16,7 @@ export default function Header({subjectName , grade}){
     return(
 
         <View style={styles.container}>
-            <TouchableOpacity style={styles.circle} onPress={()=> router.push("(tabs)/home")}>
+            <TouchableOpacity style={styles.circle} onPress={()=> router.push("Screens/home")}>
                 <MaterialIcons name="keyboard-arrow-left" size={30} color="black" />
             </TouchableOpacity>
             <View style={styles.subjectBox}>

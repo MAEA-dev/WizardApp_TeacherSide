@@ -178,7 +178,7 @@ export default function Login() {
               <TouchableOpacity
                 style={styles.button}
                 activeOpacity={0.8}
-                onPress={() => router.replace("/(tabs)/home")}
+                onPress={() => router.replace("/Screens/home")}
               >
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>

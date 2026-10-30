@@ -1,10 +1,19 @@
+import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors , Opacity} from '../../constant/colors';
 import { Shadows, TextShadows } from '../../constant/shadows';
 import { Fredoka } from '../../constant/fonts';
+import AccountDrawer from './AccountDrawer';
 
 
-export default function HomeHeader({name="teacher Name", gender = "male"}) {
+export default function HomeHeader({
+  name = "teacher Name",
+  gender = "male",
+  email = "",
+}) {
+  const [accountMenuVisible, setAccountMenuVisible] = useState(false);
+  const router = useRouter();
 
   const firstLetter = name?.trim().charAt(0).toUpperCase() || '';
 
@@ -12,9 +21,14 @@ export default function HomeHeader({name="teacher Name", gender = "male"}) {
       <View style={styles.container}>
         <View style={styles.header}>
 
-         <View style={styles.circle}>
+         <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Open account menu"
+            onPress={() => setAccountMenuVisible(true)}
+            style={styles.circle}
+         >
             <Text style={styles.letter}>{firstLetter}</Text>
-         </View>
+         </TouchableOpacity>
 
          <View style={{flex:1}}>
             <Text style={styles.greetingText}>Hello , {gender === "male" ? "Sir":"Ma'am"} </Text>
@@ -24,6 +38,14 @@ export default function HomeHeader({name="teacher Name", gender = "male"}) {
               <Text style={styles.addText}>Add class</Text>
           </TouchableOpacity>
       </View> 
+      <AccountDrawer
+        visible={accountMenuVisible}
+        name={name}
+        email={email}
+        onClose={() => setAccountMenuVisible(false)}
+        onSwitchUser={() => router.replace("/login")}
+        onLogout={() => router.replace("/login")}
+      />
     </View>
   );
 }

@@ -5,6 +5,7 @@ import { Subjects } from '../../Mocks/subjects';
 import { subjectColors, Colors } from '../../constant/colors';
 import AnimatedView  from "../../components/Animation/AnimatedView"
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
+import { User } from '../../Mocks/user';
 
 export default function Home() {
  const { playKey, hidden } = useScreenAnimationKey();
@@ -13,7 +14,7 @@ export default function Home() {
   return (
     <View style={styles.container}>
       <AnimatedView animation='slideDown' duration={500} delay={200}  playKey={playKey} hidden={hidden}>
-        <HomeHeader />
+        <HomeHeader name={User.fullName} gender={User.gender} email={User.email} />
       </AnimatedView>
       
       <ScrollView >
