@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Nunito, Fredoka } from "../../../constant/fonts";
+import { Nunito, Fredoka } from "../../../constants/fonts";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
 import AnswerChoicesField from "./AnswerChoicesField";
 

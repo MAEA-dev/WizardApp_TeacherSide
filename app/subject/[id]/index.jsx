@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {View, Text, StyleSheet} from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { Colors } from "../../../constant/colors";
+import { Colors } from "../../../constants/colors";
 import Header  from "../../../components/subject/header";
 import { Subjects } from "../../../Mocks/subjects";
 import SubjectTabs from "../../../components/subject/subjectTabs";

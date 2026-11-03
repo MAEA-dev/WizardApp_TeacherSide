@@ -1,7 +1,8 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Fredoka, Nunito } from "../../../constant/fonts";
+import { Fredoka, Nunito } from "../../../constants/fonts";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
+import { Colors } from "../../../constants/colors";
 
 export default function LessonHeader({ subtitle, onBack }) {
   return (
@@ -37,8 +38,8 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+    borderRadius: 45,
+    backgroundColor: Colors.primarySoft,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: "center",

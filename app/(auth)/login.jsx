@@ -19,8 +19,8 @@ import { useRouter } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import Fontisto from '@expo/vector-icons/Fontisto';
 
-import { Colors } from '../../constant/colors';
-import { Nunito, Inter } from '../../constant/fonts';
+import { Colors } from '../../constants/colors';
+import { Nunito, Inter } from '../../constants/fonts';
 import AnimatedView from '../../components/Animation/AnimatedView';
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
 import AnimatedText from '../../components/Animation/Animatedtext';

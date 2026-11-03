@@ -1,6 +1,6 @@
 import {View, Text , StyleSheet, Image, TouchableOpacity} from "react-native";
-import { Colors, Opacity } from "../../../../constant/colors";
-import { Fredoka, Nunito } from "../../../../constant/fonts";
+import { Colors, Opacity } from "../../../../constants/colors";
+import { Fredoka, Nunito } from "../../../../constants/fonts";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from "expo-router";
 
@@ -40,12 +40,12 @@ export default function LessonCard({id, subjectId, title, teacher, status ="publ
                         <Image source={require("../../../../assets/lessonIcon3.png")} style={{width: 50, height:50}}/>
                     </View>
                     {isVerified ? (
-                                    <View style={[styles.tag, {gap:4}]}>
+                                    <View style={[styles.tag, {gap:4}]}> 
                                          <MaterialIcons name="check" size={12} color="#166534" />
                                          <Text style={[styles.tagText, { color: "#166534" }]}>Published</Text>
                                     </View>
                                 ) : (
-                                    <View style={[styles.tag ,{gap:4}]}>
+                                    <View style={[styles.tag ,{gap:4}]}> 
                                             <View style={styles.dot} />
                                             <Text style={[styles.tagText, { color: "#3B4B6B" }]}>For Review</Text>
                                     </View>
@@ -57,16 +57,16 @@ export default function LessonCard({id, subjectId, title, teacher, status ="publ
                 <Text style={styles.titleTxt} numberOfLines={1} >{title}</Text>
                 <Text style={[styles.subtitle,{fontSize:12, marginTop: 5, color: '#36559C'}]} >Uploaded by {prefix}. {lastName} </Text>
                 <View style={styles.tagRow}>
-                    <View style={[styles.tag,]}>
-                        <View style={[styles.tag, styles.quarterTag,{gap: 3,  paddingHorizontal: 5,}]}>
-                            <Text style={[styles.tagText, {color: "#36559C"}]}>
+                    <View style={[styles.tag,]}> 
+                        <View style={[styles.tag, styles.quarterTag,{gap: 3,  paddingHorizontal: 5,}]}> 
+                            <Text style={[styles.tagText, {color: "#36559C"}]}> 
                                      {ordinal(quarter)} Quarter
                             </Text>
                         </View>  
                         <Text style={[styles.subtitle,{fontSize: 11, color: Colors.neutral, marginLeft: 5}]}>{formatDate(date)}</Text>
                     </View>
-                    
                 </View>
+
             </View>
             
             <View style={styles.arrow}>

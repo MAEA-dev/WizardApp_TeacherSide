@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Nunito } from "../../../constant/fonts";
+import { Nunito } from "../../../constants/fonts";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
 
 export default function LessonActions() {

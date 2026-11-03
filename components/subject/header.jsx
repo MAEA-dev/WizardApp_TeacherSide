@@ -1,15 +1,16 @@
+import {useState} from "react";
 import {Text, View, StyleSheet, TouchableOpacity} from "react-native";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Colors } from "../../constant/colors";
-import { Fredoka, Nunito } from "../../constant/fonts";
-import { TextShadows } from "../../constant/shadows";
+import { Colors } from "../../constants/colors";
+import { Fredoka, Nunito } from "../../constants/fonts";
+import { TextShadows } from "../../constants/shadows";
 import {useRouter} from "expo-router";
+import NewLessonModal from "./NewLessonModal";
 
 
-
-export default function Header({subjectName , grade}){
+export default function Header({subjectName, grade}){
     const router = useRouter();
-
+    const [isNewLessonOpen, setIsNewLessonOpen] = useState(false);
 
 
 
@@ -23,9 +24,19 @@ export default function Header({subjectName , grade}){
                 <Text style={styles.subjectText}>{subjectName}{"  "}{grade}</Text>
                 <Text style={styles.subtitle}>Here are your current lessons</Text>
             </View>
-            <TouchableOpacity style={styles.button} >
+            <TouchableOpacity
+                accessibilityRole="button"
+                onPress={() => setIsNewLessonOpen(true)}
+                style={styles.button}
+            >
                 <Text style={styles.btnText}>New lesson</Text>
             </TouchableOpacity>
+            <NewLessonModal
+                visible={isNewLessonOpen}
+                onClose={() => setIsNewLessonOpen(false)}
+                subjectName={subjectName}
+                grade={grade}
+            />
         </View>
 
     );

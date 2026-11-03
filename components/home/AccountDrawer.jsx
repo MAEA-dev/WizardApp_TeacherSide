@@ -10,8 +10,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Fredoka, Nunito } from "../../constant/fonts";
-import { Colors, Opacity } from "../../constant/colors";
+import { Fredoka, Nunito } from "../../constants/fonts";
+import { Colors, Opacity } from "../../constants/colors";
 
 export default function AccountDrawer({
   visible,

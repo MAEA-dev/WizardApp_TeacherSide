@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { getScoreDistribution } from '../../../../utils/scoreDistribution';
-import { Colors } from '../../../../constant/colors';
-import { Fredoka, Nunito } from '../../../../constant/fonts';
+import { Colors } from '../../../../constants/colors';
+import { Fredoka, Nunito } from '../../../../constants/fonts';
 
 const CHART_HEIGHT = 180;
 const CARD_PADDING = 5; 

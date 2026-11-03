@@ -1,8 +1,8 @@
 import {View , Text, StyleSheet} from 'react-native';
 import ProgressBar from "../../../other/ProgressBar"
-import { Shadows } from '../../../../constant/shadows';
-import { Nunito } from '../../../../constant/fonts';
-import { Colors } from '../../../../constant/colors';
+import { Shadows } from '../../../../constants/shadows';
+import { Nunito } from '../../../../constants/fonts';
+import { Colors } from '../../../../constants/colors';
 
 
 

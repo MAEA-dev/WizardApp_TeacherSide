@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Fredoka, Nunito } from "../../../constant/fonts";
+import { Fredoka, Nunito } from "../../../constants/fonts";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
 
 export default function LessonSummaryEditor({

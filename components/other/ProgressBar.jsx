@@ -1,6 +1,6 @@
 
 import { View, StyleSheet } from 'react-native';
-import { Colors } from '../../constant/colors';
+import { Colors } from '../../constants/colors';
 
 export default function ProgressBar({
   current = 0,

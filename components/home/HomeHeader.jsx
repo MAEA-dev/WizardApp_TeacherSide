@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors , Opacity} from '../../constant/colors';
-import { Shadows, TextShadows } from '../../constant/shadows';
-import { Fredoka } from '../../constant/fonts';
+import { Colors , Opacity} from '../../constants/colors';
+import { Shadows, TextShadows } from '../../constants/shadows';
+import { Fredoka } from '../../constants/fonts';
 import AccountDrawer from './AccountDrawer';
 
 

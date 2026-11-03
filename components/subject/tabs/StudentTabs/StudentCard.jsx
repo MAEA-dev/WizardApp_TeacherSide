@@ -1,6 +1,6 @@
 import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../../../constant/colors';
-import { Nunito } from '../../../../constant/fonts';
+import { Colors } from '../../../../constants/colors';
+import { Nunito } from '../../../../constants/fonts';
 
 export default function StudentCard({ student, onPress }) {
   const name = student.name || 'Student';

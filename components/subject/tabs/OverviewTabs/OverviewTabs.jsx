@@ -3,7 +3,7 @@ import LessonProgress from "./LessonProgress";
 import DetailsHeader from "./DetailsHeader";
 import ClassPerformance from "./ClassPerformance";
 import QuestionPerformanceCard from "./QuestionPerformanceCard";
-import { Colors } from "../../../../constant/colors";
+import { Colors } from "../../../../constants/colors";
 
 
 

@@ -1,8 +1,8 @@
 import {View, Text, StyleSheet, 
         Image, TouchableOpacity
 } from "react-native";
-import {Colors , Opacity} from "../../constant/colors"
-import { Fredoka, Nunito } from "../../constant/fonts";
+import {Colors , Opacity} from "../../constants/colors"
+import { Fredoka, Nunito } from "../../constants/fonts";
 import ProgressBar  from "../other/ProgressBar";
 import { useRouter } from "expo-router";
 

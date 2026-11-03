@@ -2,7 +2,7 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import HomeHeader from '../../components/home/HomeHeader';
 import SubjectCard from '../../components/home/SubjectCard';
 import { Subjects } from '../../Mocks/subjects';
-import { subjectColors, Colors } from '../../constant/colors';
+import { subjectColors, Colors } from '../../constants/colors';
 import AnimatedView  from "../../components/Animation/AnimatedView"
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
 import { User } from '../../Mocks/user';

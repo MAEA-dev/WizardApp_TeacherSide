@@ -8,8 +8,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Colors } from '../../../../constant/colors';
-import { Fredoka, Nunito } from '../../../../constant/fonts';
+import { Colors } from '../../../../constants/colors';
+import { Fredoka, Nunito } from '../../../../constants/fonts';
 import { Students } from '../../../../Mocks/students';
 import { Subjects } from '../../../../Mocks/subjects';
 

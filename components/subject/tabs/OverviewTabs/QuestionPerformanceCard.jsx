@@ -1,7 +1,7 @@
 import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../../../constant/colors';
-import { Fredoka, Nunito } from '../../../../constant/fonts';
-import { Shadows } from '../../../../constant/shadows';
+import { Colors } from '../../../../constants/colors';
+import { Fredoka, Nunito } from '../../../../constants/fonts';
+import { Shadows } from '../../../../constants/shadows';
 export default function QuestionPerformanceCard({
   correctAnswers,
   totalAnswers,

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../../../constant/colors';
-import { Fredoka, Nunito } from '../../../../constant/fonts';
+import { Colors } from '../../../../constants/colors';
+import { Fredoka, Nunito } from '../../../../constants/fonts';
 import StudentCard from './StudentCard';
 
 const FILTERS = [

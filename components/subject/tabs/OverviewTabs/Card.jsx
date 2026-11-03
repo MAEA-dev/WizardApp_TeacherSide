@@ -1,6 +1,6 @@
 import {View, StyleSheet, Text} from "react-native";
-import { Shadows } from "../../../../constant/shadows";
-import { Nunito, Fredoka } from "../../../../constant/fonts";
+import { Shadows } from "../../../../constants/shadows";
+import { Nunito, Fredoka } from "../../../../constants/fonts";
 
 export default function Card({name, data}){
 

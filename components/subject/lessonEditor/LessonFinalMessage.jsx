@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Nunito } from "../../../constant/fonts";
+import { Nunito } from "../../../constants/fonts";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
 
 export default function LessonFinalMessage({ message }) {

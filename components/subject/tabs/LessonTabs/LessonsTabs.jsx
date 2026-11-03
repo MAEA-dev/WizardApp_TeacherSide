@@ -1,5 +1,5 @@
 import { Text, FlatList, StyleSheet } from "react-native";
-import { Nunito } from "../../../../constant/fonts";
+import { Nunito } from "../../../../constants/fonts";
 import LessonCard from "../LessonTabs/lessonCard";
 
 export default function LessonsTab({ subjectId, lessons, teacher }) {

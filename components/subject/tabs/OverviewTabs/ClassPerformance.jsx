@@ -1,8 +1,8 @@
 import {View, Text, StyleSheet} from "react-native";
-import { Colors, Opacity } from "../../../../constant/colors";
+import { Colors, Opacity } from "../../../../constants/colors";
 import ScoreDistributionChart from "./ScoreDistributionChart";
-import { Shadows } from "../../../../constant/shadows";
-import { Fredoka, Nunito } from "../../../../constant/fonts";
+import { Shadows } from "../../../../constants/shadows";
+import { Fredoka, Nunito } from "../../../../constants/fonts";
 
 export default function ClassPerformance({classAvg, passed, score}){
 

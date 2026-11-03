@@ -17,7 +17,7 @@ import {
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { Colors } from '../../constant/colors';
+import { Colors } from '../../constants/colors';
 import AnimatedView from "../../components/Animation/AnimatedView"
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
 export default function Register() {

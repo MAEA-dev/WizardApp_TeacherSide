@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Colors, Opacity } from "../../constant/colors";
-import { Fredoka } from "../../constant/fonts";
+import { Colors, Opacity } from "../../constants/colors";
+import { Fredoka } from "../../constants/fonts";
 
 export default function SubjectTabs({ tabs, active, onChange }) {
   return (
