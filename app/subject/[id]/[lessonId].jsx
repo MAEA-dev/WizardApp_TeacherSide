@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,8 +9,9 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { MOCK_AI_LESSON_ID, MockAiLesson } from "../../../Mocks/aiLesson";
-import { LessonResults } from "../../../Mocks/lessonResults";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../../../services/firebaseConfig";
+import { subscribeToLessonCompletions } from "../../../services/teacherClasses";
 import useLessonEditor from "../../../hooks/useLessonEditor";
 import LessonActions from "../../../components/subject/lessonEditor/LessonActions";
 import LessonContentCard from "../../../components/subject/lessonEditor/LessonContentCard";
@@ -26,15 +28,78 @@ export default function LessonScreen() {
   const { lessonId } = useLocalSearchParams();
   const router = useRouter();
   const currentLessonId = Array.isArray(lessonId) ? lessonId[0] : lessonId;
-  const lessonDocument =
-    String(currentLessonId) === MOCK_AI_LESSON_ID ? MockAiLesson : null;
+  const [lessonDocument, setLessonDocument] = useState(null);
+  const [results, setResults] = useState([]);
+  const [isLoadingResults, setIsLoadingResults] = useState(true);
+  const [resultsError, setResultsError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    if (!currentLessonId) {
+      setLoadError('Lesson not found.');
+      setIsLoading(false);
+      return undefined;
+    }
+
+    setIsLoading(true);
+    setLoadError('');
+    return onSnapshot(
+      doc(db, "lessons", currentLessonId),
+      (snapshot) => {
+        setLessonDocument(
+          snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null
+        );
+        setIsLoading(false);
+        if (!snapshot.exists()) setLoadError('Lesson not found.');
+      },
+      (error) => {
+        console.error("Unable to load lesson:", error);
+        setLoadError(error.message || "Unable to load this lesson.");
+        setIsLoading(false);
+      }
+    );
+  }, [currentLessonId]);
+
+  useEffect(() => {
+    if (!currentLessonId) return undefined;
+
+    setResults([]);
+    setIsLoadingResults(true);
+    setResultsError('');
+    return subscribeToLessonCompletions(
+      currentLessonId,
+      (lessonResults) => {
+        setResults(
+          lessonResults.map((result) => ({
+            studentId: result.studentId,
+            studentName: result.studentName,
+            correctAnswers: Number(result.correctAnswers) || 0,
+            totalQuestions: Number(result.totalQuestions) || 0,
+            completedAt: result.completedAt,
+          }))
+        );
+        setResultsError('');
+        setIsLoadingResults(false);
+      },
+      (error) => {
+        console.error("Unable to load lesson results:", error);
+        setResultsError(error.message || "Unable to load lesson results.");
+        setIsLoadingResults(false);
+      }
+    );
+  }, [currentLessonId]);
+
   const aiLesson = lessonDocument?.aiLesson;
   const editor = useLessonEditor(aiLesson, currentLessonId);
 
-  if (!lessonDocument) {
+  if (isLoading || loadError || !lessonDocument) {
     return (
       <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>Lesson not found.</Text>
+        {isLoading ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : (
+          <Text style={styles.notFoundText}>{loadError || 'Lesson not found.'}</Text>
+        )}
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
           <Text style={styles.backLinkText}>Go back</Text>
         </TouchableOpacity>
@@ -43,11 +108,11 @@ export default function LessonScreen() {
   }
 
   const title = lessonDocument.displayTitle ?? lessonDocument.title;
-  const subtitle = `${lessonDocument.subjectName} · Grade ${lessonDocument.gradeLevel}`;
+  const subtitle = `${lessonDocument.subjectName ?? 'Subject'} · Grade ${lessonDocument.gradeLevel ?? ''}`;
 
   return (
     <View style={styles.screen}>
-      <LessonHeader subtitle={subtitle} onBack={() => router.back()} />
+      <LessonHeader title={title} subtitle={subtitle} onBack={() => router.back()} />
 
       <View style={styles.tabs} accessibilityRole="tablist">
         <Pressable
@@ -90,13 +155,15 @@ export default function LessonScreen() {
           <LessonResultsReport
             lessonId={currentLessonId}
             lessonTitle={title}
-            results={LessonResults[currentLessonId] ?? []}
+            results={results}
+            isLoading={isLoadingResults}
+            error={resultsError}
           />
         ) : (
           <>
             <LessonContentCard
               title={title}
-              introMessage={aiLesson.introMessage}
+              introMessage={aiLesson?.introMessage ?? ''}
               language={lessonDocument.language}
             />
 
@@ -139,7 +206,7 @@ export default function LessonScreen() {
               onRemove={editor.removeSummaryPoint}
             />
 
-            <LessonFinalMessage message={aiLesson.finalMessage} />
+            <LessonFinalMessage message={aiLesson?.finalMessage ?? ''} />
             <LessonActions />
           </>
         )}

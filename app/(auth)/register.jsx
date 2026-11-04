@@ -11,23 +11,29 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
-  useWindowDimensions
+  useWindowDimensions,
+  Alert,
 } from 'react-native';
 
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { Colors } from '../../constants/colors';
-import AnimatedView from "../../components/Animation/AnimatedView"
+import AnimatedView from '../../components/Animation/AnimatedView';
+import LoadingModal from '../../components/LoadingModal';
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
+import { createUser, getAuthErrorMessage } from '../../services/firebaseAuth';
+
 export default function Register() {
-  const { width, height } = useWindowDimensions();
-  const logoSize =  Math.min(width * 0.24, 80); 
-  const playKey = useScreenAnimationKey();
+  const { width } = useWindowDimensions();
+  const logoSize = Math.min(width * 0.24, 80);
+  const { playKey } = useScreenAnimationKey();
   const router = useRouter();
 
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
+  const [gender, setGender] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,13 +41,20 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
     setError('');
 
     if (
-      !fullName.trim() ||
+      !firstName.trim() ||
+      !lastName.trim() ||
       !username.trim() ||
+      !gender ||
       !email.trim() ||
       !password ||
       !confirmPassword
@@ -50,7 +63,17 @@ export default function Register() {
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    const cleanFirstName = firstName.trim();
+    const cleanLastName = lastName.trim();
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (cleanUsername.length < 3) {
+      setError('Username must contain at least 3 characters.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -65,8 +88,35 @@ export default function Register() {
       return;
     }
 
-   
-    setError('Registration is not connected yet.');
+    setIsSubmitting(true);
+
+    try {
+      const result = await createUser({
+        username: cleanUsername,
+        email: cleanEmail,
+        password,
+        role: 'teacher',
+        profile: {
+          firstName: cleanFirstName,
+          lastName: cleanLastName,
+          gender,
+        },
+      });
+
+      if (!result?.success) {
+        throw new Error('Account creation did not complete. Please try again.');
+      }
+
+      Alert.alert(
+        'Account created',
+        'Your account has been created. Sign in to continue.',
+        [{ text: 'Sign in', onPress: () => router.replace('/login') }]
+      );
+    } catch (registrationError) {
+      setError(getAuthErrorMessage(registrationError));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -106,8 +156,7 @@ export default function Register() {
                 </Text>
               </View>
 
-           
-              <Text style={styles.label}>Full Name</Text>
+              <Text style={styles.label}>First Name</Text>
               <View style={styles.inputContainer}>
                 <Feather
                   name="user"
@@ -116,17 +165,35 @@ export default function Register() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your full name"
+                  placeholder="Enter your first name"
                   placeholderTextColor={Colors.textMuted}
-                  value={fullName}
-                  onChangeText={setFullName}
+                  value={firstName}
+                  onChangeText={setFirstName}
                   autoCapitalize="words"
                   autoCorrect={false}
                   returnKeyType="next"
                 />
               </View>
 
-           
+              <Text style={styles.label}>Last Name</Text>
+              <View style={styles.inputContainer}>
+                <Feather
+                  name="user"
+                  size={19}
+                  color={Colors.textMuted}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your last name"
+                  placeholderTextColor={Colors.textMuted}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  returnKeyType="next"
+                />
+              </View>
+
               <Text style={styles.label}>Username</Text>
               <View style={styles.inputContainer}>
                 <Feather
@@ -146,7 +213,33 @@ export default function Register() {
                 />
               </View>
 
-         
+              <Text style={styles.label}>Gender</Text>
+              <View style={styles.genderOptions}>
+                {['Male', 'Female'].map((option) => {
+                  const selected = gender === option;
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      activeOpacity={0.8}
+                      onPress={() => setGender(option)}
+                      style={[
+                        styles.genderOption,
+                        selected && styles.genderOptionSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.genderOptionText,
+                          selected && styles.genderOptionTextSelected,
+                        ]}
+                      >
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               <Text style={styles.label}>Email Address</Text>
               <View style={styles.inputContainer}>
                 <Feather
@@ -247,8 +340,12 @@ export default function Register() {
 
               
               <TouchableOpacity
-                style={styles.registerButton}
+                style={[
+                  styles.registerButton,
+                  isSubmitting && styles.registerButtonDisabled,
+                ]}
                 onPress={handleRegister}
+                disabled={isSubmitting}
                 activeOpacity={0.85}
               >
                 <Text style={styles.registerButtonText}>
@@ -268,6 +365,7 @@ export default function Register() {
 
                 <TouchableOpacity
                   onPress={() => router.replace('/login')}
+                  disabled={isSubmitting}
                 >
                   <Text style={styles.loginLink}> Sign in</Text>
                 </TouchableOpacity>
@@ -277,6 +375,10 @@ export default function Register() {
         </ScrollView>
         </KeyboardAvoidingView>
       </View>
+      <LoadingModal
+        visible={isSubmitting}
+        message="Creating your account..."
+      />
     </ImageBackground>
   );
 }
@@ -400,6 +502,38 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
 
+  genderOptions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+
+  genderOption: {
+    flex: 1,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border || '#DCE4F2',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+  },
+
+  genderOptionSelected: {
+    borderColor: Colors.softBlue || '#7d9ef8',
+    backgroundColor: Colors.primaryLO || '#EAF0FF',
+  },
+
+  genderOptionText: {
+    color: Colors.textMuted || '#64748B',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
+  genderOptionTextSelected: {
+    color: Colors.primary || '#1D4ED8',
+  },
+
   errorText: {
     color: '#DC2626',
     fontSize: 13,
@@ -415,6 +549,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     marginTop: 22,
+  },
+
+  registerButtonDisabled: {
+    opacity: 0.7,
   },
 
   registerButtonText: {
@@ -448,4 +586,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 18,
   },
+
 });

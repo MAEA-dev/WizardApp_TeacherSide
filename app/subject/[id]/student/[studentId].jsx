@@ -1,59 +1,273 @@
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { doc, getDoc } from 'firebase/firestore';
 import { Colors } from '../../../../constants/colors';
-import { Fredoka, Nunito } from '../../../../constants/fonts';
-import { Students } from '../../../../Mocks/students';
-import { Subjects } from '../../../../Mocks/subjects';
+import { Nunito } from '../../../../constants/fonts';
+import { db } from '../../../../services/firebaseConfig';
+import {
+  subscribeToSubjectCompletions,
+  subscribeToSubjectLessons,
+} from '../../../../services/teacherClasses';
+import {
+  getCompletionTimestamp,
+  INACTIVITY_THRESHOLD_DAYS,
+  isStudentAtRisk,
+  isStudentInactive,
+} from '../../../../utils/studentActivity';
 
-const RING_SIZE = 88;
-const RING_RADIUS = 36;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const getScorePercent = (completion) => {
+  const percentage = Number(completion.percentage);
+  if (
+    completion.percentage !== null &&
+    completion.percentage !== undefined &&
+    completion.percentage !== '' &&
+    Number.isFinite(percentage)
+  ) return percentage;
+  const correct = Number(completion.correctAnswers);
+  const total = Number(completion.totalQuestions);
+  return total > 0 && Number.isFinite(correct) ? Math.round((correct / total) * 100) : null;
+};
+
+const formatLastActive = (timestamp) => {
+  if (timestamp === null) return '—';
+  const days = Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
+  if (days === 0) return 'Today';
+  return `${days} day${days === 1 ? '' : 's'}`;
+};
+
+const getInitials = (name) =>
+  String(name || 'Student')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0] || '')
+    .join('')
+    .toUpperCase();
+
+function PerformanceRing({ score }) {
+  const size = 76;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = score === null ? 0 : Math.max(0, Math.min(score, 100)) / 100;
+
+  return (
+    <View style={styles.ring}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#E1EAFB"
+          strokeWidth={strokeWidth}
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={score !== null && score < 70 ? '#E98700' : '#244FDB'}
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={circumference * (1 - progress)}
+          strokeLinecap="round"
+          rotation={-90}
+          originX={size / 2}
+          originY={size / 2}
+        />
+      </Svg>
+      <View style={styles.ringLabel}>
+        <Text style={styles.ringScore}>{score === null ? '—' : `${score}%`}</Text>
+        <Text style={styles.ringCaption}>overall</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function StudentPerformanceRoute() {
   const { id, studentId } = useLocalSearchParams();
   const subjectId = Array.isArray(id) ? id[0] : id;
   const selectedStudentId = Array.isArray(studentId) ? studentId[0] : studentId;
-  const student = Students.find((item) => String(item.id) === String(selectedStudentId));
-  const subject = Subjects.find((item) => String(item.id) === String(subjectId));
+  const [student, setStudent] = useState(null);
+  const [subject, setSubject] = useState(null);
+  const [completions, setCompletions] = useState([]);
+  const [lessons, setLessons] = useState([]);
+  const [isLoadingCompletions, setIsLoadingCompletions] = useState(true);
+  const [completionsError, setCompletionsError] = useState('');
+  const [lessonsError, setLessonsError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!student) {
-    return (
-      <View style={styles.safeArea}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.notFound}>Student not found.</Text>
-      </View>
+  useEffect(() => {
+    let isActive = true;
+
+    if (!selectedStudentId || !subjectId) {
+      setError('Student or subject not found.');
+      setIsLoading(false);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    setIsLoading(true);
+    setError('');
+    Promise.all([
+      getDoc(doc(db, 'users', selectedStudentId)),
+      getDoc(doc(db, 'subjects', subjectId)),
+    ])
+      .then(([studentSnapshot, subjectSnapshot]) => {
+        if (!isActive) return;
+        if (!studentSnapshot.exists() || !subjectSnapshot.exists()) {
+          setError('Student or subject not found.');
+          return;
+        }
+
+        const studentData = studentSnapshot.data();
+        const profile = studentData.profile || {};
+        setStudent({
+          name: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
+          level: studentData.level,
+          xp: studentData.xp,
+          streak: studentData.streak,
+        });
+        const subjectData = subjectSnapshot.data();
+        setSubject({
+          name: subjectData.subjectName,
+          grade: subjectData.gradeLevel,
+        });
+      })
+      .catch((loadError) => {
+        console.error('Unable to load student details:', loadError);
+        if (isActive) setError(loadError.message || 'Unable to load student details.');
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedStudentId, subjectId]);
+
+  useEffect(() => {
+    if (!subjectId || !selectedStudentId) return undefined;
+
+    setCompletions([]);
+    setCompletionsError('');
+    setIsLoadingCompletions(true);
+    return subscribeToSubjectCompletions(
+      subjectId,
+      (subjectCompletions) => {
+        setCompletions(subjectCompletions);
+        setCompletionsError('');
+        setIsLoadingCompletions(false);
+      },
+      (loadError) => {
+        console.error('Unable to load student lesson performance:', loadError);
+        setCompletionsError(loadError.message || 'Unable to load lesson performance.');
+        setIsLoadingCompletions(false);
+      }
     );
-  }
+  }, [selectedStudentId, subjectId]);
 
-  const performance = student.performance ?? {};
-  const lessonScores = performance.lessonScores ?? [];
-  const overallScore = Number(performance.overallScore ?? 0);
-  const initials = student.name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-  const subjectName = subject?.name === 'Mathematics' ? 'Math' : subject?.name ?? 'Subject';
-  const isAtRisk = String(student.status).toLowerCase().replace(/[\s_-]/g, '') === 'atrisk';
+  useEffect(() => {
+    if (!subjectId) return undefined;
+
+    return subscribeToSubjectLessons(
+      subjectId,
+      (subjectLessons) => {
+        setLessons(subjectLessons);
+        setLessonsError('');
+      },
+      (loadError) => {
+        console.error('Unable to load student subject lessons:', loadError);
+        setLessonsError(loadError.message || 'Unable to load subject lessons.');
+      }
+    );
+  }, [subjectId]);
+
+  const studentCompletions = useMemo(
+    () => completions.filter((completion) => completion.studentId === selectedStudentId),
+    [completions, selectedStudentId]
+  );
+
+  const lessonResults = useMemo(() => {
+    const lessonsById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
+    const resultsByLesson = new Map();
+
+    studentCompletions.forEach((completion) => {
+      if (!completion.lessonId) return;
+      const current = resultsByLesson.get(completion.lessonId);
+      const currentTime = current ? getCompletionTimestamp(current.completedAt) : null;
+      const nextTime = getCompletionTimestamp(completion.completedAt);
+      if (!current || (nextTime !== null && (currentTime === null || nextTime >= currentTime))) {
+        resultsByLesson.set(completion.lessonId, completion);
+      }
+    });
+
+    return [...resultsByLesson.entries()]
+      .map(([lessonId, completion]) => ({
+        id: lessonId,
+        title: lessonsById.get(lessonId)?.title || 'Untitled lesson',
+        score: getScorePercent(completion),
+        completion,
+      }))
+      .sort((a, b) => {
+        if (a.score === null && b.score === null) return 0;
+        if (a.score === null) return 1;
+        if (b.score === null) return -1;
+        return b.score - a.score;
+      });
+  }, [studentCompletions, lessons]);
+
+  const averageScore = useMemo(() => {
+    const scores = lessonResults.map(({ score }) => score).filter((score) => score !== null);
+    return scores.length
+      ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+      : null;
+  }, [lessonResults]);
+
+  const classAverage = useMemo(() => {
+    const scoresByStudent = new Map();
+    completions.forEach((completion) => {
+      const score = getScorePercent(completion);
+      if (!completion.studentId || score === null) return;
+      if (!scoresByStudent.has(completion.studentId)) scoresByStudent.set(completion.studentId, []);
+      scoresByStudent.get(completion.studentId).push(score);
+    });
+    const studentAverages = [...scoresByStudent.values()].map(
+      (scores) => scores.reduce((sum, score) => sum + score, 0) / scores.length
+    );
+    return studentAverages.length
+      ? Math.round(studentAverages.reduce((sum, score) => sum + score, 0) / studentAverages.length)
+      : null;
+  }, [completions]);
+
+  const latestCompletionTime = useMemo(
+    () => studentCompletions.reduce((latest, completion) => {
+      const timestamp = getCompletionTimestamp(completion.completedAt);
+      return timestamp === null ? latest : Math.max(latest ?? timestamp, timestamp);
+    }, null),
+    [studentCompletions]
+  );
+
+  const strongestLesson = lessonResults.find(({ score }) => score !== null);
+  const needsWorkLesson = [...lessonResults].reverse().find(({ score }) => score !== null);
+  const completionCount = lessonResults.length;
+  const isInactive = isStudentInactive(latestCompletionTime);
+  const isAtRisk = isStudentAtRisk(averageScore, latestCompletionTime);
+  const hasStatus = averageScore !== null || isInactive;
 
   return (
-    <View style={styles.safeArea}>
+    <View style={styles.screen}>
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Go back to students"
+          accessibilityLabel="Go back"
           onPress={() => router.back()}
           style={styles.backButton}
         >
@@ -62,189 +276,205 @@ export default function StudentPerformanceRoute() {
         <Text style={styles.headerTitle}>Student performance</Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.studentCard}>
-          <View style={[styles.avatar, { backgroundColor: student.avatarColor || Colors.primarySoft }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-          <View style={styles.studentDetails}>
-            <Text numberOfLines={1} style={styles.studentName}>{student.name}</Text>
-            <Text numberOfLines={1} style={styles.studentMeta}>
-              {subjectName} {subject?.grade ?? ''} • Level {student.level ?? 1} • {Number(student.exp ?? 0).toLocaleString()} EXP
-            </Text>
-            <View style={styles.studentBadges}>
-              <View style={[styles.badge, isAtRisk ? styles.riskBadge : styles.trackBadge]}>
-                <Text style={[styles.badgeText, isAtRisk ? styles.riskText : styles.trackText]}>
-                  {isAtRisk ? 'At risk' : 'On track'}
-                </Text>
-              </View>
-              <View style={styles.streakBadge}>
-                <Text style={styles.streakText}>{performance.streakDays ?? 0}-day streak</Text>
+      {isLoading ? (
+        <ActivityIndicator color={Colors.primary} style={styles.centered} />
+      ) : error ? (
+        <Text style={styles.message}>{error}</Text>
+      ) : (
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.studentCard}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getInitials(student.name)}</Text>
+            </View>
+            <View style={styles.studentDetails}>
+              <Text numberOfLines={1} style={styles.studentName}>{student.name || 'Student'}</Text>
+              <Text numberOfLines={1} style={styles.subject}>
+                {subject.name} {subject.grade}
+                {student.level == null ? '' : ` · Level ${student.level}`}
+                {student.xp == null ? '' : ` · ${Number(student.xp).toLocaleString()} EXP`}
+              </Text>
+              <View style={styles.studentBadges}>
+                {hasStatus && (
+                  <Text style={[styles.statusBadge, isAtRisk ? styles.atRiskBadge : styles.onTrackBadge]}>
+                    {isAtRisk ? 'At risk' : 'On track'}
+                  </Text>
+                )}
+                {student.streak != null && (
+                  <Text style={styles.streakBadge}>{student.streak}-day streak</Text>
+                )}
               </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.overviewCard}>
-          <View style={styles.ringContainer} accessibilityLabel={`Overall performance ${overallScore}%`}>
-            <Svg width={RING_SIZE} height={RING_SIZE}>
-              <Circle
-                cx={RING_SIZE / 2}
-                cy={RING_SIZE / 2}
-                r={RING_RADIUS}
-                fill="none"
-                stroke={Colors.primarySoft}
-                strokeWidth="9"
-              />
-              <Circle
-                cx={RING_SIZE / 2}
-                cy={RING_SIZE / 2}
-                r={RING_RADIUS}
-                fill="none"
-                stroke={overallScore < 70 ? Colors.warning : Colors.success}
-                strokeWidth="9"
-                strokeDasharray={`${RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
-                strokeDashoffset={RING_CIRCUMFERENCE * (1 - Math.min(Math.max(overallScore, 0), 100) / 100)}
-                strokeLinecap="round"
-                rotation={-90}
-                origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-              />
-            </Svg>
-            <View style={styles.ringLabel}>
-              <Text style={styles.ringScore}>{overallScore}%</Text>
-              <Text style={styles.ringCaption}>overall</Text>
-            </View>
-          </View>
-
-          <View style={styles.overviewText}>
-            <Text style={styles.sectionTitle}>Overall performance</Text>
-            <Text style={styles.bodyText}>
-              {overallScore < Number(performance.classAverage ?? 0)
-                ? `Below the class average of ${performance.classAverage}%.`
-                : `At or above the class average of ${performance.classAverage ?? 0}%.`}
-            </Text>
-            <Text style={styles.bodyText}>{performance.trendMessage ?? 'No recent trend available.'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsRow}>
-          <MetricCard
-            label="Lessons done"
-            value={`${performance.lessonsDone ?? 0} / ${performance.totalLessons ?? 0}`}
-          />
-          <MetricCard label="Avg. time" value={`${performance.averageTime ?? 0} min`} />
-          <MetricCard label="Last active" value={performance.lastActive ?? 'Unknown'} />
-        </View>
-
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Lesson scores</Text>
-          {lessonScores.map((lesson) => (
-            <View key={lesson.id} style={styles.lessonScore}>
-              <View style={styles.lessonHeader}>
-                <Text numberOfLines={1} style={styles.lessonName}>{lesson.name}</Text>
-                <Text style={[styles.lessonPercent, { color: scoreColor(lesson.score) }]}>
-                  {lesson.score}%
-                </Text>
+          {isLoadingCompletions ? (
+            <ActivityIndicator color={Colors.primary} style={styles.performanceState} />
+          ) : completionsError ? (
+            <Text style={styles.message}>{completionsError}</Text>
+          ) : (
+            <>
+              <View style={styles.performanceCard}>
+                <PerformanceRing score={averageScore} />
+                <View style={styles.performanceDetails}>
+                  <Text style={styles.cardTitle}>Overall performance</Text>
+                  <Text style={styles.performanceText}>
+                    {averageScore === null
+                      ? 'Scores will appear when this student completes a lesson.'
+                      : classAverage === null
+                        ? 'Class average is not available yet.'
+                        : `${averageScore >= classAverage ? 'Above' : 'Below'} the class average of ${classAverage}%.`}
+                  </Text>
+                  {hasStatus && (
+                    <Text style={styles.performanceText}>
+                      {averageScore !== null && averageScore < 70
+                        ? 'Overall score is below 70%.'
+                        : isInactive
+                          ? `No activity in more than ${INACTIVITY_THRESHOLD_DAYS} days.`
+                          : 'Overall score is on track.'}
+                    </Text>
+                  )}
+                </View>
               </View>
-              <View style={styles.lessonTrack}>
-                <View
-                  style={[
-                    styles.lessonFill,
-                    { width: `${Math.min(Math.max(Number(lesson.score) || 0, 0), 100)}%`, backgroundColor: scoreColor(lesson.score) },
-                  ]}
-                />
-              </View>
-            </View>
-          ))}
-        </View>
 
-        <View style={styles.topicsRow}>
-          <View style={[styles.topicCard, styles.strongCard]}>
-            <Text style={styles.topicLabel}>Strongest topic</Text>
-            <Text numberOfLines={2} style={styles.topicValue}>{performance.strongestTopic ?? 'Not available'}</Text>
-          </View>
-          <View style={[styles.topicCard, styles.needsWorkCard]}>
-            <Text style={styles.topicLabel}>Needs work</Text>
-            <Text numberOfLines={2} style={styles.topicValue}>{performance.needsWork ?? 'Not available'}</Text>
-          </View>
-        </View>
-      </ScrollView>
+              <View style={styles.metrics}>
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>Lessons done</Text>
+                  <Text style={styles.metricValue}>{completionCount} / {lessons.length}</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>Avg. time</Text>
+                  <Text style={styles.metricValue}>—</Text>
+                </View>
+                <View style={styles.metricCard}>
+                  <Text style={styles.metricLabel}>Last active</Text>
+                  <Text numberOfLines={1} style={styles.metricValue}>
+                    {formatLastActive(latestCompletionTime)}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.timeNote}>Time spent is not recorded for completed lessons.</Text>
+
+              <View style={styles.lessonScoresCard}>
+                <Text style={styles.cardTitle}>Lesson scores</Text>
+                {lessonResults.length === 0 ? (
+                  <Text style={styles.emptyText}>
+                    No completed lessons are recorded for this student in this subject.
+                  </Text>
+                ) : (
+                  lessonResults.map((result, index) => {
+                    const score = result.score;
+                    const fillColor = score === null
+                      ? '#94A3B8'
+                      : score >= 70
+                        ? '#16A34A'
+                        : score >= 50
+                          ? '#E98700'
+                          : '#C62828';
+                    return (
+                      <View key={result.id} style={styles.lessonScore}>
+                        <View style={styles.lessonScoreHeading}>
+                          <Text numberOfLines={1} style={styles.lessonTitle}>
+                            {index + 1}. {result.title}
+                          </Text>
+                          <Text style={[styles.lessonPercentage, { color: fillColor }]}>
+                            {score === null ? '—' : `${score}%`}
+                          </Text>
+                        </View>
+                        <View style={styles.progressTrack}>
+                          <View
+                            style={[
+                              styles.progressFill,
+                              {
+                                backgroundColor: fillColor,
+                                width: `${score === null ? 0 : Math.max(0, Math.min(score, 100))}%`,
+                              },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
+                {!!lessonsError && <Text style={styles.errorText}>{lessonsError}</Text>}
+              </View>
+
+              {lessonResults.length > 1 && strongestLesson && needsWorkLesson && (
+                <View style={styles.topicHighlights}>
+                  <View style={[styles.topicCard, styles.strongestCard]}>
+                    <Text style={styles.topicLabel}>Strongest topic</Text>
+                    <Text numberOfLines={2} style={styles.topicValue}>{strongestLesson.title}</Text>
+                  </View>
+                  <View style={[styles.topicCard, styles.needsWorkCard]}>
+                    <Text style={styles.topicLabel}>Needs work</Text>
+                    <Text numberOfLines={2} style={styles.topicValue}>{needsWorkLesson.title}</Text>
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
-}
-
-function MetricCard({ label, value }) {
-  return (
-    <View style={styles.metricCard}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={styles.metricValue}>{value}</Text>
-    </View>
-  );
-}
-
-function scoreColor(score) {
-  if (Number(score) >= 70) return Colors.success;
-  if (Number(score) >= 50) return Colors.warning;
-  return Colors.danger;
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: Colors.neutralBg,
+  screen: {
     flex: 1,
+    backgroundColor: '#EAF1FD',
   },
   header: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 8,
   },
   backButton: {
     alignItems: 'center',
-    backgroundColor: Colors.primarySoft,
-    borderRadius: 21,
-    height: 40,
+    backgroundColor: '#D5E5FF',
+    borderRadius: 20,
+    height: 32,
     justifyContent: 'center',
-    width: 40,
+    width: 32,
   },
   headerTitle: {
     color: Colors.text,
-    fontFamily: Fredoka.semiBold,
-    fontSize: 18,
+    fontFamily: Nunito.bold,
+    fontSize: 16,
+  },
+  centered: {
+    flex: 1,
   },
   content: {
-    gap: 12,
-    paddingBottom: 18,
-    paddingHorizontal: 12,
+    gap: 10,
+    paddingHorizontal: 14,
     paddingTop: 4,
+    paddingBottom: 24,
   },
   studentCard: {
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderColor: Colors.border,
-    borderRadius: 12,
+    borderColor: '#C8D9FF',
+    borderRadius: 17,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 12,
-    minHeight: 78,
-    padding: 11,
+    gap: 10,
+    minHeight: 66,
+    padding: 9,
   },
   avatar: {
     alignItems: 'center',
+    backgroundColor: '#F3B1B4',
     borderRadius: 24,
-    flexShrink: 0,
-    height: 48,
+    height: 44,
     justifyContent: 'center',
-    width: 48,
+    width: 44,
   },
   avatarText: {
     color: Colors.text,
     fontFamily: Nunito.extraBold,
-    fontSize: 15,
+    fontSize: 14,
   },
   studentDetails: {
     flex: 1,
@@ -254,250 +484,207 @@ const styles = StyleSheet.create({
   studentName: {
     color: Colors.text,
     fontFamily: Nunito.bold,
-    fontSize: 16,
-  },
-  studentMeta: {
-    color: Colors.textMuted,
-    fontFamily: Nunito.medium,
-    fontSize: 11,
+    fontSize: 13,
   },
   studentBadges: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 5,
+    gap: 6,
   },
-  badge: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  riskBadge: {
-    backgroundColor: Colors.dangerBg,
-  },
-  trackBadge: {
-    backgroundColor: Colors.successBg,
-  },
-  badgeText: {
-    fontFamily: Nunito.bold,
-    fontSize: 10,
-  },
-  riskText: {
-    color: Colors.danger,
-  },
-  trackText: {
-    color: Colors.success,
-  },
-  streakBadge: {
-    backgroundColor: Colors.primarySoft,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  streakText: {
+  subject: {
     color: Colors.textMuted,
     fontFamily: Nunito.medium,
     fontSize: 10,
   },
-  overviewCard: {
+  statusBadge: {
+    borderRadius: 10,
+    fontFamily: Nunito.bold,
+    fontSize: 9,
+    overflow: 'hidden',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  atRiskBadge: {
+    backgroundColor: '#FEE2E2',
+    color: '#A52323',
+  },
+  onTrackBadge: {
+    backgroundColor: '#DCFCE7',
+    color: '#13713B',
+  },
+  streakBadge: {
+    backgroundColor: '#EFF4FF',
+    borderRadius: 10,
+    color: Colors.textMuted,
+    fontFamily: Nunito.medium,
+    fontSize: 9,
+    overflow: 'hidden',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  performanceCard: {
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderColor: Colors.border,
-    borderRadius: 12,
+    borderColor: '#C8D9FF',
+    borderRadius: 17,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
-    minHeight: 116,
-    padding: 12,
+    minHeight: 94,
+    padding: 10,
   },
-  ringContainer: {
+  ring: {
     alignItems: 'center',
-    height: RING_SIZE,
+    height: 76,
     justifyContent: 'center',
-    width: RING_SIZE,
+    width: 76,
   },
   ringLabel: {
     alignItems: 'center',
-    justifyContent: 'center',
     position: 'absolute',
   },
   ringScore: {
     color: Colors.text,
-    fontFamily: Fredoka.semiBold,
-    fontSize: 19,
+    fontFamily: Nunito.extraBold,
+    fontSize: 16,
   },
   ringCaption: {
     color: Colors.textMuted,
     fontFamily: Nunito.medium,
-    fontSize: 9,
+    fontSize: 8,
   },
-  overviewText: {
+  performanceDetails: {
     flex: 1,
-    gap: 5,
+    gap: 3,
     minWidth: 0,
   },
-  sectionTitle: {
+  cardTitle: {
     color: Colors.text,
     fontFamily: Nunito.bold,
-    fontSize: 14,
+    fontSize: 12,
   },
-  bodyText: {
+  performanceText: {
     color: Colors.textMuted,
     fontFamily: Nunito.medium,
-    fontSize: 11,
+    fontSize: 10,
+    lineHeight: 14,
   },
-  statsRow: {
+  metrics: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 7,
   },
   metricCard: {
     backgroundColor: Colors.surface,
-    borderColor: Colors.border,
-    borderRadius: 10,
+    borderColor: '#C8D9FF',
+    borderRadius: 13,
     borderWidth: 1,
     flex: 1,
-    gap: 2,
     minWidth: 0,
     paddingHorizontal: 8,
-    paddingVertical: 9,
+    paddingVertical: 8,
   },
   metricLabel: {
     color: Colors.textMuted,
     fontFamily: Nunito.medium,
-    fontSize: 10,
+    fontSize: 9,
   },
   metricValue: {
     color: Colors.text,
-    fontFamily: Fredoka.semiBold,
-    fontSize: 16,
-  },
-  sectionCard: {
-    backgroundColor: Colors.surface,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-    padding: 12,
-  },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  testScore: {
-    color: Colors.danger,
-    fontFamily: Nunito.bold,
-    fontSize: 12,
-  },
-  answerHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  answerCount: {
-    color: Colors.text,
-    fontFamily: Nunito.bold,
-    fontSize: 11,
-  },
-  answerBar: {
-    backgroundColor: '#F4B7BA',
-    borderRadius: 4,
-    flexDirection: 'row',
-    height: 8,
-    overflow: 'hidden',
-  },
-  answerCorrect: {
-    backgroundColor: Colors.success,
-  },
-  answerWrong: {
-    backgroundColor: '#F4B7BA',
-  },
-  subsectionTitle: {
-    color: Colors.text,
-    fontFamily: Nunito.bold,
-    fontSize: 11,
+    fontFamily: Nunito.extraBold,
+    fontSize: 15,
     marginTop: 2,
   },
-  missedQuestion: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 6,
-  },
-  questionId: {
-    backgroundColor: Colors.dangerBg,
-    borderRadius: 6,
-    color: Colors.danger,
-    fontFamily: Nunito.bold,
-    fontSize: 10,
-    overflow: 'hidden',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  questionText: {
-    color: Colors.text,
-    flex: 1,
+  timeNote: {
+    color: Colors.textMuted,
     fontFamily: Nunito.medium,
-    fontSize: 11,
+    fontSize: 9,
+    marginTop: -7,
+    textAlign: 'right',
+  },
+  lessonScoresCard: {
+    backgroundColor: Colors.surface,
+    borderColor: '#C8D9FF',
+    borderRadius: 17,
+    borderWidth: 1,
+    gap: 9,
+    padding: 10,
   },
   lessonScore: {
-    gap: 3,
+    gap: 4,
   },
-  lessonHeader: {
+  lessonScoreHeading: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'space-between',
   },
-  lessonName: {
+  lessonTitle: {
     color: Colors.text,
     flex: 1,
     fontFamily: Nunito.bold,
-    fontSize: 11,
+    fontSize: 10,
   },
-  lessonPercent: {
+  lessonPercentage: {
     fontFamily: Nunito.bold,
-    fontSize: 11,
+    fontSize: 10,
   },
-  lessonTrack: {
-    backgroundColor: Colors.lightBlue,
+  progressTrack: {
+    backgroundColor: '#E2EAF8',
     borderRadius: 4,
-    height: 6,
+    height: 5,
     overflow: 'hidden',
   },
-  lessonFill: {
+  progressFill: {
     borderRadius: 4,
     height: '100%',
   },
-  topicsRow: {
+  emptyText: {
+    color: Colors.textMuted,
+    fontFamily: Nunito.medium,
+    fontSize: 11,
+    paddingVertical: 12,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: Colors.danger,
+    fontFamily: Nunito.medium,
+    fontSize: 10,
+  },
+  topicHighlights: {
     flexDirection: 'row',
     gap: 8,
   },
   topicCard: {
-    borderRadius: 10,
+    borderRadius: 14,
     flex: 1,
     gap: 3,
     minWidth: 0,
-    padding: 9,
+    padding: 10,
   },
-  strongCard: {
-    backgroundColor: Colors.successBg,
+  strongestCard: {
+    backgroundColor: '#DCFCE7',
   },
   needsWorkCard: {
-    backgroundColor: Colors.dangerBg,
+    backgroundColor: '#FEE2E2',
   },
   topicLabel: {
     color: Colors.textMuted,
     fontFamily: Nunito.medium,
-    fontSize: 10,
+    fontSize: 9,
   },
   topicValue: {
     color: Colors.text,
     fontFamily: Nunito.bold,
-    fontSize: 12,
+    fontSize: 11,
   },
-  notFound: {
-    color: Colors.text,
-    fontFamily: Nunito.bold,
-    fontSize: 16,
+  message: {
+    color: Colors.textMuted,
+    fontFamily: Nunito.medium,
+    lineHeight: 20,
     margin: 20,
+    textAlign: 'center',
+  },
+  performanceState: {
+    marginTop: 30,
   },
 });

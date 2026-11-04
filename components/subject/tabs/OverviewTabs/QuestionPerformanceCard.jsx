@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../../../constants/colors';
 import { Fredoka, Nunito } from '../../../../constants/fonts';
@@ -6,12 +7,16 @@ export default function QuestionPerformanceCard({
   correctAnswers,
   totalAnswers,
   mostMissedQuestions,
-  onSeeAllQuestions,
 }) {
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
   const wrongAnswers = Math.max(totalAnswers - correctAnswers, 0);
   const correctPercentage = totalAnswers > 0
     ? Math.round((correctAnswers / totalAnswers) * 100)
     : 0;
+
+  const visibleQuestions = showAllQuestions
+    ? mostMissedQuestions
+    : mostMissedQuestions.slice(0, 3);
 
   return (
     <View style={styles.card}>
@@ -20,7 +25,9 @@ export default function QuestionPerformanceCard({
       <View style={styles.answerSummary}>
         <Text style={styles.answerLabel}>All answers</Text>
         <Text style={styles.answerCount}>
-          {correctAnswers} of {totalAnswers} correct ({correctPercentage}%)
+          {totalAnswers > 0
+            ? `${correctAnswers} of ${totalAnswers} correct (${correctPercentage}%)`
+            : 'No answer data yet'}
         </Text>
       </View>
 
@@ -48,39 +55,49 @@ export default function QuestionPerformanceCard({
         </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Most missed questions</Text>
-      {mostMissedQuestions.map((item) => {
-        const incorrectPercentage = Math.min(Math.max(item.incorrectPercent, 0), 100);
+      {mostMissedQuestions.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Most missed questions</Text>
+          {visibleQuestions.map((item) => {
+            const incorrectPercentage = Math.min(Math.max(item.incorrectPercent, 0), 100);
 
-        return (
-          <View key={item.id ?? item.question} style={styles.question}>
-            <View style={styles.questionHeader}>
-              <Text style={styles.questionText} numberOfLines={2}>
-                {item.question}
+            return (
+              <View key={item.id ?? item.question} style={styles.question}>
+                <View style={styles.questionHeader}>
+                  <Text style={styles.questionText} numberOfLines={2}>
+                    {item.question}
+                  </Text>
+                  <Text style={styles.questionPercentage}>
+                    {incorrectPercentage}%
+                  </Text>
+                </View>
+                <View style={styles.questionBar}>
+                  <View
+                    style={[
+                      styles.questionBarFill,
+                      { width: `${incorrectPercentage}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+            );
+          })}
+          {mostMissedQuestions.length > 3 && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => setShowAllQuestions((showing) => !showing)}
+              style={styles.button}
+            >
+              <Text style={styles.buttonText}>
+                {showAllQuestions ? 'Show fewer questions' : 'See all questions'}
               </Text>
-              <Text style={styles.questionPercentage}>
-                {incorrectPercentage}%
-              </Text>
-            </View>
-            <View style={styles.questionBar}>
-              <View
-                style={[
-                  styles.questionBarFill,
-                  { width: `${incorrectPercentage}%` },
-                ]}
-              />
-            </View>
-          </View>
-        );
-      })}
-
-      <TouchableOpacity
-        accessibilityRole="button"
-        onPress={onSeeAllQuestions}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>See all questions</Text>
-      </TouchableOpacity>
+            </TouchableOpacity>
+          )}
+        </>
+      )}
+      {mostMissedQuestions.length === 0 && (
+        <Text style={styles.noQuestionData}>Question-level response data is not available yet.</Text>
+      )}
     </View>
   );
 }
@@ -88,15 +105,16 @@ export default function QuestionPerformanceCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: 15,
-    marginTop: 10,
-    padding: 15,
+    borderColor: '#B7CEFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 13,
     ...Shadows.medium
   },
   title: {
     color: Colors.text,
     fontFamily: Fredoka.semiBold,
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 8,
   },
   answerSummary: {
@@ -118,7 +136,7 @@ const styles = StyleSheet.create({
   answerBar: {
     borderRadius: 4,
     flexDirection: 'row',
-    height: 12,
+    height: 10,
     overflow: 'hidden',
   },
   correctSegment: {
@@ -174,7 +192,7 @@ const styles = StyleSheet.create({
   questionBar: {
     backgroundColor: '#E4EDFC',
     borderRadius: 4,
-    height: 10,
+    height: 7,
     overflow: 'hidden',
   },
   questionBarFill: {
@@ -188,11 +206,17 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     justifyContent: 'center',
     marginTop: 5,
-    minHeight: 28,
+    minHeight: 38,
   },
   buttonText: {
     color: Colors.primary,
     fontFamily: Nunito.bold,
     fontSize: 12,
+  },
+  noQuestionData: {
+    color: Colors.textMuted,
+    fontFamily: Nunito.medium,
+    fontSize: 11,
+    marginTop: 12,
   },
 });

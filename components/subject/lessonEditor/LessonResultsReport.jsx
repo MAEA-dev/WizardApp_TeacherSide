@@ -10,7 +10,6 @@ import {
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Students } from "../../../Mocks/students";
 import { Fredoka, Nunito } from "../../../constants/fonts";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
 
@@ -33,7 +32,9 @@ const createCsvReport = (lessonTitle, results) => {
   const rows = results.map(({ student, result }) => [
     lessonTitle,
     student.name,
-    result ? Math.round((result.correctAnswers / result.totalQuestions) * 100) : "",
+    result?.totalQuestions > 0
+      ? Math.round((result.correctAnswers / result.totalQuestions) * 100)
+      : "",
     result?.correctAnswers ?? "",
     result?.totalQuestions ?? "",
   ]);
@@ -46,17 +47,25 @@ const createCsvReport = (lessonTitle, results) => {
 const getScorePercent = (result) =>
   Math.round((result.correctAnswers / result.totalQuestions) * 100);
 
-export default function LessonResultsReport({ lessonId, lessonTitle, results = [] }) {
+export default function LessonResultsReport({
+  lessonId,
+  lessonTitle,
+  results = [],
+  isLoading = false,
+  error = '',
+}) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const [exportMessage, setExportMessage] = useState("");
 
   const studentResults = useMemo(
-    () =>
-      Students.map((student) => ({
-        student,
-        result: results.find((item) => item.studentId === student.id),
-      })),
+    () => results.map((result, index) => ({
+      student: {
+        id: result.studentId ?? index,
+        name: result.studentName || result.studentId || "Student",
+      },
+      result,
+    })),
     [results]
   );
   const completedResults = results.filter(
@@ -160,7 +169,11 @@ export default function LessonResultsReport({ lessonId, lessonTitle, results = [
         )}
       </View>
 
-      {studentResults.length > 0 ? (
+      {isLoading ? (
+        <ActivityIndicator color={colors.primary} style={styles.resultsLoading} />
+      ) : error ? (
+        <Text style={styles.error}>{error}</Text>
+      ) : studentResults.length > 0 ? (
         <View style={styles.resultList}>
           {studentResults.map(({ student, result }) => {
             const initials = student.name
@@ -183,20 +196,20 @@ export default function LessonResultsReport({ lessonId, lessonTitle, results = [
                 <View style={styles.studentDetails}>
                   <Text style={styles.studentName}>{student.name}</Text>
                   <Text style={styles.scoreDetail}>
-                    {result
+                    {result?.totalQuestions > 0
                       ? `${result.correctAnswers} of ${result.totalQuestions} correct`
-                      : "Not completed"}
+                      : "Score unavailable"}
                   </Text>
                 </View>
-                <Text style={[styles.score, !result && styles.pendingScore]}>
-                  {result ? `${getScorePercent(result)}%` : "—"}
+                <Text style={[styles.score, !(result?.totalQuestions > 0) && styles.pendingScore]}>
+                  {result?.totalQuestions > 0 ? `${getScorePercent(result)}%` : "—"}
                 </Text>
               </View>
             );
           })}
         </View>
       ) : (
-        <Text style={styles.empty}>No students are available for this report.</Text>
+        <Text style={styles.empty}>No students have completed this lesson yet.</Text>
       )}
 
       <Pressable
@@ -327,6 +340,9 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontFamily: Nunito.medium,
     fontSize: 13,
+    paddingVertical: 16,
+  },
+  resultsLoading: {
     paddingVertical: 16,
   },
   exportButton: {

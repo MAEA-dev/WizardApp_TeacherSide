@@ -1,134 +1,234 @@
-import {View, Text, StyleSheet, 
-        Image, TouchableOpacity
-} from "react-native";
-import {Colors , Opacity} from "../../constants/colors"
-import { Fredoka, Nunito } from "../../constants/fonts";
-import ProgressBar  from "../other/ProgressBar";
-import { useRouter } from "expo-router";
+import { useEffect, useState } from 'react';
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Colors, Opacity } from '../../constants/colors';
+import { Fredoka, Nunito } from '../../constants/fonts';
+import ProgressBar from '../other/ProgressBar';
+import { subscribeToSubjectCardMetrics } from '../../services/teacherClasses';
 
+const EMPTY_METRICS = {
+  studentCount: null,
+  lessonCount: null,
+  finishedLessonCount: null,
+};
 
-export default function SubjectCard({id, subjectName , grade, color}){
-    
-    const router = useRouter();
+export default function SubjectCard({
+  id,
+  subjectName,
+  grade,
+  color = Colors.primary,
+}) {
+  const router = useRouter();
+  const [metrics, setMetrics] = useState(EMPTY_METRICS);
+  const [metricsError, setMetricsError] = useState('');
 
+  useEffect(() => {
+    setMetrics(EMPTY_METRICS);
+    setMetricsError('');
 
-    return(
+    try {
+      return subscribeToSubjectCardMetrics(
+        id,
+        grade,
+        setMetrics,
+        (error) => {
+          console.error('Unable to load subject card metrics:', error);
+          setMetricsError('Some class metrics could not be loaded.');
+        }
+      );
+    } catch (error) {
+      console.error('Unable to subscribe to subject card metrics:', error);
+      setMetricsError(error.message || 'Unable to load class metrics.');
+      return undefined;
+    }
+  }, [grade, id]);
 
-        <View style={[styles.card, {backgroundColor: Colors.bg, borderColor: color + Opacity[20], borderWidth:1 }]}>
-
-            <View style={styles.headerContainer}>
-                <View style={[styles.ImageContainer, {backgroundColor: color + Opacity[40]} ]}>
-                     <Image source={require("../../assets/subjectIcon.png")} style={{width: "90%", height: "90%"}}/>
-                </View>
-                <View style={styles.titleBox}>
-                        <Text style={styles.subjectText} numberOfLines={1} ellipsizeMode="tail">{subjectName}</Text>
-                        <Text style={[styles.gradeText, {color: color + Opacity[70]}]}>Grade {grade}</Text>
-               </View>
-                
-                    <TouchableOpacity style={styles.button} onPress={() => {
-                                                                    console.log("Open pressed, id =", id);
-                                                                    router.push(`/subject/${id}`);}}>
-                        <Text style={styles.btnText}>Open</Text>
-                    </TouchableOpacity>
-                
-            </View>
-
-            <View style={[styles.container, {justifyContent:"center", gap:10,}]}>
-                    <View style={[styles.details, {backgroundColor: color + Opacity[10]}]}>
-                        <Text  style={styles.legend}>Students</Text>
-                        <Text style={styles.numberText}>32</Text>
-                    </View>
-                    <View style={[styles.details,{backgroundColor: color + Opacity[10]}]}>
-                        <Text style={styles.legend}>Lessons</Text>
-                        <Text style={styles.numberText}>14</Text>
-                    </View>
-            </View>
-            <View style={styles.footer}>
-                <View style={[styles.container, {justifyContent: 'space-between', paddingLeft:0}]}>
-                    <Text style={[styles.legend, {color: Colors.neutral}]}>Lessons Finished</Text>
-                    <Text style={[styles.legend, {color: Colors.neutral}]}> 14 of 17</Text>
-                </View>
-               
-                    <ProgressBar current={14} total={17} color={color} />
-            </View>
-        
+  return (
+    <View style={[styles.card, { borderColor: `${color}${Opacity[20]}` }]}>
+      <View style={styles.header}>
+        <View style={[styles.iconContainer, { backgroundColor: `${color}${Opacity[40]}` }]}>
+          <Image
+            source={require('../../assets/subjectIcon.png')}
+            style={styles.icon}
+            resizeMode="contain"
+          />
         </View>
-    )
 
+        <View style={styles.titleBox}>
+          <Text style={[styles.subjectName, styles.capitalizeSubject]} numberOfLines={1}>
+            {subjectName}
+          </Text>
+          <Text style={[styles.grade, { color }]} numberOfLines={1}>
+            Grade {grade}
+          </Text>
+        </View>
 
+        <TouchableOpacity
+          accessibilityRole="button"
+          onPress={() =>
+            router.push({
+              pathname: '/subject/[id]',
+              params: {
+                id: String(id),
+                subjectName,
+                grade: String(grade),
+              },
+            })
+          }
+          style={styles.openButton}
+        >
+          <Text style={styles.openText}>Open</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.statRow}>
+        <View style={[styles.stat, { backgroundColor: `${color}${Opacity[20]}` }]}>
+          <Text style={styles.statLabel}>Students </Text>
+          <Text style={styles.statValue}>
+            {metrics.studentCount == null ? '—' : metrics.studentCount}
+          </Text>
+        </View>
+        <View style={[styles.stat, { backgroundColor: `${color}${Opacity[20]}` }]}>
+          <Text style={styles.statLabel}>Lessons</Text>
+          <Text style={styles.statValue}>
+            {metrics.lessonCount == null ? '—' : metrics.lessonCount}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.progressSection}>
+        <View style={styles.progressLabels}>
+          <Text style={styles.progressTitle}>Lessons finished by all students</Text>
+          <Text style={styles.progressValue}>
+            {metrics.lessonCount == null
+              ? '—'
+              : `${metrics.finishedLessonCount ?? '—'} of ${metrics.lessonCount}`}
+          </Text>
+        </View>
+        <ProgressBar
+          current={metrics.finishedLessonCount ?? 0}
+          total={metrics.lessonCount ?? 0}
+          color={color}
+          backgroundColor={Colors.border}
+          height={6}
+        />
+      </View>
+
+      {!!metricsError && <Text style={styles.error}>{metricsError}</Text>}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    card:{
-      minHeight: 200,
-      borderRadius: 25,
-      padding: 10,
-      marginHorizontal: 5,
-      marginVertical: 10,
-      overflow:"hidden"
-    },
-    headerContainer:{
-        flexDirection: "row",
-        alignContent: "center"
-    },
-    titleBox:{
-        flex: 1,
-        minWidth: 0,
-        marginHorizontal: 10
-    },
-    container:{
-        flexDirection: "row",
-        paddingVertical: 5,
-        paddingHorizontal:5
-    },
-    ImageContainer: {
-      justifyContent: "center",
-      alignItems: "center" ,
-      width: 60,
-      height: 60,
-      borderRadius: 15,
-      overflow:"hidden"
-    },
-    subjectText: {
-        fontSize: 20,
-        fontFamily: Nunito.extraBold
-    },
-    gradeText:{
-        fontSize: 15,
-        fontFamily: Nunito.medium
-    },
-    details:{
-        width: "50%",
-        height: 60,
-        borderRadius: 15,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        overflow: "hidden"
-    },
-    legend: {
-        fontFamily:Nunito.bold,
-        fontSize: 13,
-        color: Colors.text
-    },
-    numberText: {
-        marginLeft:5,
-        fontFamily: Nunito.extraBold ,
-        fontSize: 20
-    },
-    footer:{
-        paddingHorizontal: 5
-    },
-    button:{
-        maxHeight: 50,
-        padding: 10,
-        backgroundColor: Colors.success,
-        borderRadius: 15,
-        justifyContent: "center",
-        alignContent: "center"
-    },
-    btnText:{
-        fontFamily: Fredoka.semiBold,
-        fontSize: 18,
-        color: Colors.bg
-    }
+  card: {
+    backgroundColor: Colors.bg,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginHorizontal: 10,
+    marginVertical: 9,
+    padding: 11,
+  },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    borderRadius: 15,
+    height: 66,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 66,
+  },
+  icon: {
+    height: '90%',
+    width: '90%',
+  },
+  titleBox: {
+    flex: 1,
+    minWidth: 0,
+  },
+  subjectName: {
+    color: Colors.text,
+    fontFamily: Nunito.extraBold,
+    fontSize: 21,
+    fontStyle: 'capitalize',
+  },
+  capitalizeSubject: {
+    textTransform: 'capitalize',
+  },
+  grade: {
+    fontFamily: Nunito.medium,
+    fontSize: 16,
+  },
+  openButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.success,
+    borderRadius: 17,
+    justifyContent: 'center',
+    minHeight: 54,
+    minWidth: 72,
+    paddingHorizontal: 11,
+  },
+  openText: {
+    color: Colors.surface,
+    fontFamily: Fredoka.semiBold,
+    fontSize: 17,
+  },
+  statRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  stat: {
+    borderRadius: 17,
+    flex: 1,
+    minHeight: 67,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  statLabel: {
+    color: Colors.text,
+    fontFamily: Nunito.bold,
+    fontSize: 14,
+  },
+  statValue: {
+    color: '#111827',
+    fontFamily: Fredoka.semiBold,
+    fontSize: 23,
+    lineHeight: 27,
+  },
+  progressSection: {
+    marginTop: 12,
+    paddingHorizontal: 5,
+  },
+  progressLabels: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  progressTitle: {
+    color: Colors.textMuted,
+    fontFamily: Nunito.bold,
+    fontSize: 12,
+  },
+  progressValue: {
+    color: Colors.textMuted,
+    fontFamily: Nunito.bold,
+    fontSize: 13,
+  },
+  error: {
+    color: Colors.danger,
+    fontFamily: Nunito.medium,
+    fontSize: 11,
+    marginTop: 6,
+  },
 });

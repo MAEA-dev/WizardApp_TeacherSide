@@ -8,11 +8,9 @@ import {useRouter} from "expo-router";
 import NewLessonModal from "./NewLessonModal";
 
 
-export default function Header({subjectName, grade}){
+export default function Header({subjectId, subjectName, grade}){
     const router = useRouter();
     const [isNewLessonOpen, setIsNewLessonOpen] = useState(false);
-
-
 
     return(
 
@@ -34,6 +32,7 @@ export default function Header({subjectName, grade}){
             <NewLessonModal
                 visible={isNewLessonOpen}
                 onClose={() => setIsNewLessonOpen(false)}
+                subjectId={subjectId}
                 subjectName={subjectName}
                 grade={grade}
             />
@@ -67,6 +66,7 @@ const styles= StyleSheet.create({
     subjectText:{
         fontFamily: Fredoka.semiBold,
         fontSize: 17,
+        textTransform: "capitalize",
         
         
     },

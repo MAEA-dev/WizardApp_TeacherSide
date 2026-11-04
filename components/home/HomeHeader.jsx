@@ -11,11 +11,13 @@ export default function HomeHeader({
   name = "teacher Name",
   gender = "male",
   email = "",
+  onAddClass,
 }) {
   const [accountMenuVisible, setAccountMenuVisible] = useState(false);
   const router = useRouter();
 
   const firstLetter = name?.trim().charAt(0).toUpperCase() || '';
+  const greeting = String(gender).trim().toLowerCase() === 'female' ? "Ma'am" : 'Sir';
 
   return (
       <View style={styles.container}>
@@ -31,10 +33,15 @@ export default function HomeHeader({
          </TouchableOpacity>
 
          <View style={{flex:1}}>
-            <Text style={styles.greetingText}>Hello , {gender === "male" ? "Sir":"Ma'am"} </Text>
+            <Text style={styles.greetingText}>Hello, {greeting}</Text>
            <Text style={styles.teacherNameText}>{name}</Text>
          </View>
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Add class"
+            onPress={onAddClass}
+            style={styles.button}
+          >
               <Text style={styles.addText}>Add class</Text>
           </TouchableOpacity>
       </View> 

@@ -29,6 +29,7 @@ export default function AnimatedText({
   delay = 0,
   useSpring = false,
   playKey = 0,
+  enabled = true,
   style,
   ...props
 }) {
@@ -50,6 +51,14 @@ export default function AnimatedText({
     y.value = preset.y;
     scale.value = preset.scale;
 
+    if (!enabled) {
+      opacity.value = 1;
+      x.value = 0;
+      y.value = 0;
+      scale.value = 1;
+      return;
+    }
+
     const animate = (value) =>
       useSpring
         ? withSpring(value)
@@ -69,7 +78,7 @@ export default function AnimatedText({
       cancelAnimation(y);
       cancelAnimation(scale);
     };
-  }, [playKey, animation, duration, delay, useSpring]);
+  }, [playKey, animation, duration, delay, useSpring, enabled]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../../../constants/colors';
-import { Fredoka, Nunito } from '../../../../constants/fonts';
+import { Nunito } from '../../../../constants/fonts';
 import StudentCard from './StudentCard';
 
 const FILTERS = [
@@ -13,13 +13,21 @@ const FILTERS = [
 const isAtRisk = (student) =>
   String(student.status).toLowerCase().replace(/[\s_-]/g, '') === 'atrisk';
 
-export default function StudentsTab({ students = [], onStudentPress }) {
+const isOnTrack = (student) =>
+  String(student.status).toLowerCase().replace(/[\s_-]/g, '') === 'ontrack';
+
+export default function StudentsTab({
+  students = [],
+  onStudentPress,
+  isLoading = false,
+  error = '',
+}) {
   const [activeFilter, setActiveFilter] = useState('all');
 
   const counts = useMemo(
     () => ({
       all: students.length,
-      onTrack: students.filter((student) => !isAtRisk(student)).length,
+      onTrack: students.filter(isOnTrack).length,
       atRisk: students.filter(isAtRisk).length,
     }),
     [students]
@@ -27,9 +35,15 @@ export default function StudentsTab({ students = [], onStudentPress }) {
 
   const filteredStudents = useMemo(() => {
     if (activeFilter === 'atRisk') return students.filter(isAtRisk);
-    if (activeFilter === 'onTrack') return students.filter((student) => !isAtRisk(student));
-    return students;
-  }, [activeFilter, students]);
+    if (activeFilter === 'onTrack') return students.filter(isOnTrack);
+    return [...students];
+  }, [activeFilter, students]).sort((a, b) => {
+    const scoreA = Number.isFinite(a.averageScore) ? a.averageScore : -1;
+    const scoreB = Number.isFinite(b.averageScore) ? b.averageScore : -1;
+    return scoreB - scoreA
+      || (b.completedLessonCount || 0) - (a.completedLessonCount || 0)
+      || String(a.name || '').localeCompare(String(b.name || ''));
+  });
 
   return (
     <FlatList
@@ -38,44 +52,55 @@ export default function StudentsTab({ students = [], onStudentPress }) {
       keyExtractor={(student) => String(student.id ?? student.name)}
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={
-        <View style={styles.filters}>
-          {FILTERS.map((filter) => {
-            const isActive = activeFilter === filter.key;
-            const count = counts[filter.key];
+        <View>
+          {!!error && <Text style={styles.error}>{error}</Text>}
+          <View style={styles.filters}>
+            {FILTERS.map((filter) => {
+              const isActive = activeFilter === filter.key;
+              const count = counts[filter.key];
 
-            return (
-              <Pressable
-                key={filter.key}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isActive }}
-                onPress={() => setActiveFilter(filter.key)}
-                style={[
-                  styles.filter,
-                  filter.key === 'all' && styles.allFilter,
-                  filter.key === 'onTrack' && styles.onTrackFilter,
-                  filter.key === 'atRisk' && styles.atRiskFilter,
-                  isActive && styles.activeFilter,
-                ]}
-              >
-                <Text
+              return (
+                <Pressable
+                  key={filter.key}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                  onPress={() => setActiveFilter(filter.key)}
                   style={[
-                    styles.filterText,
-                    filter.key === 'all' && styles.allFilterText,
-                    filter.key === 'onTrack' && styles.onTrackText,
-                    filter.key === 'atRisk' && styles.atRiskText,
+                    styles.filter,
+                    filter.key === 'all' && isActive && styles.allFilter,
+                    filter.key === 'onTrack' && styles.onTrackFilter,
+                    filter.key === 'atRisk' && styles.atRiskFilter,
+                    isActive && filter.key !== 'all' && styles.activeFilter,
                   ]}
                 >
-                  {filter.label} {count}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Text
+                    style={[
+                      styles.filterText,
+                      filter.key === 'all' && isActive && styles.allFilterText,
+                      filter.key === 'onTrack' && styles.onTrackText,
+                      filter.key === 'atRisk' && styles.atRiskText,
+                    ]}
+                  >
+                    {filter.label} {count}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       }
       ListEmptyComponent={
-        <Text style={styles.empty}>
-          {students.length === 0 ? 'No students yet.' : 'No students in this group yet.'}
-        </Text>
+        <View style={styles.empty}>
+          {isLoading ? (
+            <ActivityIndicator color={Colors.primary} />
+          ) : (
+            <Text style={error ? styles.error : styles.emptyText}>
+              {error || (students.length === 0
+                ? 'No students have completed a lesson for this subject yet.'
+                : 'No students in this group yet.')}
+            </Text>
+          )}
+        </View>
       }
       renderItem={({ item }) => (
         <StudentCard student={item} onPress={() => onStudentPress?.(item)} />
@@ -86,53 +111,60 @@ export default function StudentsTab({ students = [], onStudentPress }) {
 
 const styles = StyleSheet.create({
   list: {
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 16,
+    backgroundColor: '#EAF1FD',
+    flexGrow: 1,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 20,
   },
   filters: {
     flexDirection: 'row',
-    gap: 7,
-    marginBottom: 9,
+    gap: 8,
+    marginBottom: 12,
   },
   filter: {
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 18,
     justifyContent: 'center',
-    minHeight: 24,
-    paddingHorizontal: 9,
+    minHeight: 29,
+    paddingHorizontal: 12,
   },
   allFilter: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#244FDB',
   },
   onTrackFilter: {
-    backgroundColor: Colors.successBg,
+    backgroundColor: '#D9F7E5',
   },
   atRiskFilter: {
-    backgroundColor: Colors.dangerBg,
-  },
-  activeFilter: {
-    borderColor: Colors.text,
-    borderWidth: 1,
+    backgroundColor: '#FCE1E2',
   },
   filterText: {
     fontFamily: Nunito.bold,
-    fontSize: 11,
+    fontSize: 12,
   },
   allFilterText: {
     color: Colors.surface,
   },
   onTrackText: {
-    color: Colors.success,
+    color: '#13713B',
   },
   atRiskText: {
-    color: Colors.danger,
+    color: '#A52323',
   },
   empty: {
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  emptyText: {
     color: Colors.textMuted,
     fontFamily: Nunito.medium,
     fontSize: 14,
-    marginTop: 30,
+    textAlign: 'center',
+  },
+  error: {
+    color: Colors.danger,
+    fontFamily: Nunito.medium,
+    fontSize: 14,
     textAlign: 'center',
   },
 });

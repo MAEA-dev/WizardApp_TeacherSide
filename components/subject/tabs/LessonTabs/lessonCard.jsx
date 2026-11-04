@@ -1,4 +1,4 @@
-import {View, Text , StyleSheet, Image, TouchableOpacity} from "react-native";
+import {View, Text , StyleSheet, Image, TouchableOpacity, Pressable, ActivityIndicator} from "react-native";
 import { Colors, Opacity } from "../../../../constants/colors";
 import { Fredoka, Nunito } from "../../../../constants/fonts";
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -19,23 +19,35 @@ export const formatDate = (date) => {
 
 
 
-export default function LessonCard({id, subjectId, title, teacher, status ="published", quarter=1}){
+export default function LessonCard({
+    id,
+    subjectId,
+    title,
+    teacher,
+    status,
+    quarter,
+    createdAt,
+    onDelete,
+    isDeleting = false,
+}){
     const router = useRouter();
     const isVerified = status === "published";
     const prefix = teacher?.gender === "Female" ? "Ms" : "Mr";
     const lastName = teacher?.lastName
-    const date = Date.now()
     return(
-        <TouchableOpacity
-            onPress={() =>
-                router.push({
-                    pathname: "/subject/[id]/[lessonId]",
-                    params: { id: String(subjectId), lessonId: String(id) },
-                })
-            }
-        >
         <View style={styles.card}>
-            <View style={styles.iconContainer}>
+            <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Open lesson ${title}`}
+                onPress={() =>
+                    router.push({
+                        pathname: "/subject/[id]/[lessonId]",
+                        params: { id: String(subjectId), lessonId: String(id) },
+                    })
+                }
+                style={styles.lessonContent}
+            >
+                <View style={styles.iconContainer}>
                     <View style={styles.Icon}>
                         <Image source={require("../../../../assets/lessonIcon3.png")} style={{width: 50, height:50}}/>
                     </View>
@@ -51,29 +63,52 @@ export default function LessonCard({id, subjectId, title, teacher, status ="publ
                                     </View>
                                 )}
 
-            </View>
+                </View>
             
-            <View style={styles.description}>
+                <View style={styles.description}>
                 <Text style={styles.titleTxt} numberOfLines={1} >{title}</Text>
-                <Text style={[styles.subtitle,{fontSize:12, marginTop: 5, color: '#36559C'}]} >Uploaded by {prefix}. {lastName} </Text>
+                {!!lastName && (
+                    <Text style={[styles.subtitle,{fontSize:12, marginTop: 5, color: '#36559C'}]}>
+                        Uploaded by {prefix}. {lastName}
+                    </Text>
+                )}
                 <View style={styles.tagRow}>
-                    <View style={[styles.tag,]}> 
-                        <View style={[styles.tag, styles.quarterTag,{gap: 3,  paddingHorizontal: 5,}]}> 
-                            <Text style={[styles.tagText, {color: "#36559C"}]}> 
-                                     {ordinal(quarter)} Quarter
+                    <View style={[styles.tag,]}>
+                        {quarter != null && (
+                            <View style={[styles.tag, styles.quarterTag,{gap: 3,  paddingHorizontal: 5,}]}>
+                                <Text style={[styles.tagText, {color: "#36559C"}]}>
+                                    {ordinal(quarter)} Quarter
+                                </Text>
+                            </View>
+                        )}
+                        {!!createdAt && (
+                            <Text style={[styles.subtitle,{fontSize: 11, color: Colors.neutral, marginLeft: 5}]}>
+                                {formatDate(createdAt)}
                             </Text>
-                        </View>  
-                        <Text style={[styles.subtitle,{fontSize: 11, color: Colors.neutral, marginLeft: 5}]}>{formatDate(date)}</Text>
+                        )}
                     </View>
                 </View>
 
-            </View>
+                </View>
             
-            <View style={styles.arrow}>
-                <MaterialIcons name="keyboard-arrow-right" size={30} color="black" />
-            </View>
+                <View style={styles.arrow}>
+                    <MaterialIcons name="keyboard-arrow-right" size={30} color="black" />
+                </View>
+            </TouchableOpacity>
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Delete lesson ${title}`}
+                disabled={isDeleting}
+                onPress={onDelete}
+                style={styles.deleteButton}
+            >
+                {isDeleting ? (
+                    <ActivityIndicator size="small" color={Colors.danger} />
+                ) : (
+                    <MaterialIcons name="delete-outline" size={22} color={Colors.danger} />
+                )}
+            </Pressable>
         </View>
-        </TouchableOpacity>
     );
 }
 
@@ -81,19 +116,28 @@ export default function LessonCard({id, subjectId, title, teacher, status ="publ
 const styles = StyleSheet.create({
     card:{
         backgroundColor: "#ffff",
-
         flexDirection:"row",
         gap: 10,
         margin: 10,
         padding: 10,
-        
-        justifyContent:"center",
         alignItems: "center",
-        
         borderWidth: 1,
         borderColor: Colors.primary + Opacity[40],
         borderRadius: 20
-
+    },
+    lessonContent: {
+        alignItems: "center",
+        flex: 1,
+        flexDirection: "row",
+        gap: 10,
+        minWidth: 0,
+    },
+    deleteButton: {
+        alignItems: "center",
+        borderRadius: 18,
+        height: 36,
+        justifyContent: "center",
+        width: 36,
     },
     iconContainer:{
         flexShrink:0,

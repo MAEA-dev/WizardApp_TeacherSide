@@ -20,24 +20,46 @@ import Feather from '@expo/vector-icons/Feather';
 import Fontisto from '@expo/vector-icons/Fontisto';
 
 import { Colors } from '../../constants/colors';
-import { Nunito, Inter } from '../../constants/fonts';
+import { Inter } from '../../constants/fonts';
 import AnimatedView from '../../components/Animation/AnimatedView';
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
 import AnimatedText from '../../components/Animation/Animatedtext';
-
-
-
-
+import LoadingModal from '../../components/LoadingModal';
+import { getAuthErrorMessage, loginUsername } from '../../services/firebaseAuth';
 
 
 export default function Login() {
   
-  const playKey = useScreenAnimationKey();
+  const { playKey } = useScreenAnimationKey();
   const { width, height } = useWindowDimensions();
 
   const router = useRouter();
 
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [animationsEnabled, setAnimationsEnabled] = useState(true);
+
+  const handleLogin = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    setAnimationsEnabled(false);
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      await loginUsername({ username: identifier, password });
+      router.replace('/Screens/home');
+    } catch (loginError) {
+      setError(getAuthErrorMessage(loginError));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const showEvent =
@@ -88,15 +110,16 @@ export default function Login() {
               <View style={styles.welcomeRow}>
                 <View style={styles.welcomeText}>
                   <AnimatedText animation='fadeIn' style={styles.welcomeTitle}  duration={1400}  delay={800} 
-                       playKey={playKey}>
+                       playKey={playKey}
+                       enabled={animationsEnabled}>
                     Welcome Teacher
                   </AnimatedText>
 
-                  <AnimatedText animation='fadeIn' style={styles.welcomeSubtitle} duration={1400} delay={1400} playKey={playKey}>
+                  <AnimatedText animation='fadeIn' style={styles.welcomeSubtitle} duration={1400} delay={1400} playKey={playKey} enabled={animationsEnabled}>
                     Log in to upload lessons and track your class.
                   </AnimatedText>
                 </View>
-                <AnimatedView animation='zoomIn' duration={1400} playKey={playKey}>
+                <AnimatedView animation='zoomIn' duration={1400} playKey={playKey} enabled={animationsEnabled}>
                 <Image
                   source={require('../../assets/logoGranby.png')}
                   style={[
@@ -110,7 +133,7 @@ export default function Login() {
             )}
           </View>
 
-          <AnimatedView animation='slideUp' duration={800} useSpring playKey={playKey} delay={200}>
+          <AnimatedView animation='slideUp' duration={800}  playKey={playKey} delay={200} enabled={animationsEnabled}>
                 <View
             style={[
               styles.loginContainer,
@@ -120,7 +143,7 @@ export default function Login() {
             <Text style={styles.headerTitle}>Login</Text>
 
             <Text style={styles.registerPrompt}>
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Text
                 style={styles.registerText}
                 onPress={() => router.push('/register')}
@@ -138,9 +161,11 @@ export default function Login() {
 
               <TextInput
                 style={styles.TextInput}
-                placeholder="Email"
+                placeholder="Username or email"
                 placeholderTextColor={Colors.neutral}
-                keyboardType="email-address"
+                value={identifier}
+                onChangeText={setIdentifier}
+                keyboardType="default"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"
@@ -158,16 +183,22 @@ export default function Login() {
                 style={styles.TextInput}
                 placeholder="Password"
                 placeholderTextColor={Colors.neutral}
+                value={password}
+                onChangeText={setPassword}
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="done"
+                onSubmitEditing={handleLogin}
               />
             </View>
+
+            {!!error && <Text style={styles.errorText}>{error}</Text>}
 
             <TouchableOpacity
               onPress={() => router.push('/forgot-password')}
               style={styles.forgotPasswordButton}
+              disabled={isSubmitting}
             >
               <Text style={styles.forgetPassword}>
                 Forgot Password?
@@ -178,7 +209,8 @@ export default function Login() {
               <TouchableOpacity
                 style={styles.button}
                 activeOpacity={0.8}
-                onPress={() => router.replace("/Screens/home")}
+                onPress={handleLogin}
+                disabled={isSubmitting}
               >
                 <Text style={styles.buttonText}>Login</Text>
               </TouchableOpacity>
@@ -199,6 +231,7 @@ export default function Login() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+      <LoadingModal visible={isSubmitting} message="Signing in..." />
     </ImageBackground>
   );
 }
@@ -347,6 +380,13 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     textAlign: 'right',
     fontSize: 13,
+  },
+
+  errorText: {
+    color: Colors.danger || '#DC2626',
+    fontSize: 13,
+    marginTop: -4,
+    marginBottom: 12,
   },
 
   btnContainer: {

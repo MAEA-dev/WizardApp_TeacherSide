@@ -1,18 +1,34 @@
-import {View, Text, StyleSheet} from "react-native";
+import {View, Text, StyleSheet, Pressable} from "react-native";
 import { Colors, Opacity } from "../../../../constants/colors";
 import ScoreDistributionChart from "./ScoreDistributionChart";
 import { Shadows } from "../../../../constants/shadows";
 import { Fredoka, Nunito } from "../../../../constants/fonts";
 
-export default function ClassPerformance({classAvg, passed, score}){
+export default function ClassPerformance({
+    classAvg,
+    passed,
+    scores,
+    quarterLabel,
+    onQuarterPress,
+}){
 
     return(
         <View style={styles.container}>
-            <Text style={styles.titleTxt}>Class Performance</Text>  
+            <View style={styles.heading}>
+                <Text style={styles.titleTxt}>Class performance</Text>
+                <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Filter performance: ${quarterLabel}`}
+                    onPress={onQuarterPress}
+                    style={styles.quarterButton}
+                >
+                    <Text style={styles.quarterText}>{quarterLabel}  ▾</Text>
+                </Pressable>
+            </View>
             <View style={styles.cardContainer}>
                 <View style={[styles.card, {backgroundColor: Colors.primarySoft}]}>
                     <Text style ={styles.label}>Class average</Text>
-                    <Text style={styles.dataTxt}>{classAvg}%</Text>
+                    <Text style={styles.dataTxt}>{classAvg == null ? "—" : `${classAvg}%`}</Text>
                 </View>
                 <View style={[styles.card, {backgroundColor: Colors.accent + Opacity[20]}]}>
                     <Text style ={styles.label}>Passed</Text>
@@ -20,7 +36,7 @@ export default function ClassPerformance({classAvg, passed, score}){
                 </View>
                 
             </View >
-                <ScoreDistributionChart scores={score}/>      
+                <ScoreDistributionChart scores={scores}/>      
             </View>
     );
 
@@ -31,18 +47,25 @@ export default function ClassPerformance({classAvg, passed, score}){
 
 const styles = StyleSheet.create({
     container:{
-        padding: 15,
+        padding: 13,
         borderRadius: 20,
         backgroundColor: "#ffff",
-        marginTop: 10,
+        borderColor: "#B7CEFF",
+        borderWidth: 1,
         ...Shadows.medium
+    },
+    heading: {
+        alignItems: "center",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 10,
     },
     cardContainer:{
         flexDirection: "row",
         gap: 10,
         justifyContent: "center",
         alignItems:"center",
-        marginBottom: 10
+        marginBottom: 8
     },
     card:{
         flex: 1,
@@ -50,9 +73,9 @@ const styles = StyleSheet.create({
         borderRadius: 15
     },
     titleTxt: {
-        fontSize: 16,
+        color: Colors.text,
+        fontSize: 15,
         fontFamily: Fredoka.semiBold,
-        marginBottom: 10
     },
     label: {
         fontFamily: Nunito.medium,
@@ -60,9 +83,21 @@ const styles = StyleSheet.create({
     },
     dataTxt:{
         fontFamily: Fredoka.semiBold,
-        fontSize: 25
+        fontSize: 25,
+        color: "#172A4D",
 
-    }
+    },
+    quarterButton: {
+        backgroundColor: "#E2ECFF",
+        borderRadius: 14,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+    },
+    quarterText: {
+        color: Colors.primary,
+        fontFamily: Nunito.bold,
+        fontSize: 11,
+    },
 
 
 });

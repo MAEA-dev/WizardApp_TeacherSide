@@ -2,6 +2,8 @@ import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../../../constants/colors';
 import { Nunito } from '../../../../constants/fonts';
 
+const AVATAR_COLORS = ['#9FC2F8', '#A8DEC1', '#FFD08F', '#F3B1B4', '#CDBCF3'];
+
 export default function StudentCard({ student, onPress }) {
   const name = student.name || 'Student';
   const initials = name
@@ -12,40 +14,54 @@ export default function StudentCard({ student, onPress }) {
     .join('')
     .toUpperCase();
   const isAtRisk = String(student.status).toLowerCase().replace(/[\s_-]/g, '') === 'atrisk';
+  const score = Number.isFinite(student.averageScore) ? student.averageScore : null;
   const progressValue = Number(student.progress) || 0;
   const progress = Math.min(Math.max(progressValue > 1 ? progressValue / 100 : progressValue, 0), 1);
+  const hasStatus = Boolean(student.status);
+  const avatarColor = student.avatarColor || AVATAR_COLORS[
+    [...String(student.id || name)].reduce((sum, character) => sum + character.charCodeAt(0), 0)
+      % AVATAR_COLORS.length
+  ];
+  const meta = [
+    score === null ? 'Total average —' : `Total average ${score}%`,
+    `${student.completedLessonCount ?? 0} lessons finished`,
+  ].join(' • ');
+  const progressLabel = `Lesson completion progress ${Math.round(progress * 100)}%`;
 
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      accessibilityLabel={`${name}, level ${student.level ?? 1}, ${isAtRisk ? 'at risk' : 'on track'}`}
+      accessibilityLabel={`${name}${meta ? `, ${meta}` : ''}${score == null ? '' : `, average score ${score}%`}${hasStatus ? `, ${isAtRisk ? 'at risk' : 'on track'}` : ''}`}
       onPress={onPress}
       style={styles.card}
     >
-      <View style={[styles.avatar, { backgroundColor: student.avatarColor || Colors.primarySoft }]}>
+      <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
         <Text style={styles.initials}>{initials}</Text>
       </View>
 
       <View style={styles.details}>
         <View style={styles.heading}>
           <Text numberOfLines={1} style={styles.name}>{name}</Text>
-          <View style={[styles.status, isAtRisk ? styles.atRiskStatus : styles.onTrackStatus]}>
-            <Text style={[styles.statusText, isAtRisk ? styles.atRiskText : styles.onTrackText]}>
-              {isAtRisk ? 'At risk' : 'On track'}
-            </Text>
-          </View>
+          {hasStatus && (
+            <View style={[styles.status, isAtRisk ? styles.atRiskStatus : styles.onTrackStatus]}>
+              <Text style={[styles.statusText, isAtRisk ? styles.atRiskText : styles.onTrackText]}>
+                {isAtRisk ? 'At risk' : 'On track'}
+              </Text>
+            </View>
+          )}
         </View>
 
-        <Text style={styles.meta}>
-          Level {student.level ?? 1} • {Number(student.exp ?? 0).toLocaleString()} EXP
-        </Text>
+        <Text style={styles.meta}>{meta}</Text>
 
         <View
           accessibilityRole="progressbar"
+          accessibilityLabel={progressLabel}
           accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }}
           style={styles.progressTrack}
         >
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+          {score !== null && (
+            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -57,32 +73,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'stretch',
     backgroundColor: Colors.surface,
-    borderColor: Colors.border,
-    borderRadius: 20,
+    borderColor: '#B7CEFF',
+    borderRadius: 22,
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 10,
-    minHeight: 78,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    gap: 11,
+    marginBottom: 12,
+    minHeight: 76,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   avatar: {
     alignItems: 'center',
-    borderRadius: 22,
+    borderRadius: 24,
     flexShrink: 0,
-    height: 44,
+    height: 48,
     justifyContent: 'center',
-    width: 44,
+    width: 48,
   },
   initials: {
     color: Colors.text,
     fontFamily: Nunito.extraBold,
-    fontSize: 14,
+    fontSize: 15,
   },
   details: {
     flex: 1,
-    gap: 2,
+    gap: 3,
     minWidth: 0,
   },
   heading: {
@@ -95,14 +111,14 @@ const styles = StyleSheet.create({
     color: Colors.text,
     flex: 1,
     fontFamily: Nunito.bold,
-    fontSize: 15,
+    fontSize: 14,
     minWidth: 0,
   },
   status: {
-    borderRadius: 10,
+    borderRadius: 12,
     flexShrink: 0,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
   },
   onTrackStatus: {
     backgroundColor: Colors.successBg,
@@ -112,7 +128,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontFamily: Nunito.bold,
-    fontSize: 11,
+    fontSize: 10,
   },
   onTrackText: {
     color: Colors.success,
@@ -123,17 +139,17 @@ const styles = StyleSheet.create({
   meta: {
     color: Colors.text,
     fontFamily: Nunito.medium,
-    fontSize: 12,
+    fontSize: 11,
   },
   progressTrack: {
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: '#E0EAFB',
     borderRadius: 4,
     height: 6,
     overflow: 'hidden',
     width: '100%',
   },
   progressFill: {
-    backgroundColor: '#3657A7',
+    backgroundColor: '#244FDB',
     borderRadius: 4,
     height: '100%',
   },

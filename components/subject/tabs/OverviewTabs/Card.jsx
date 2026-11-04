@@ -1,5 +1,4 @@
 import {View, StyleSheet, Text} from "react-native";
-import { Shadows } from "../../../../constants/shadows";
 import { Nunito, Fredoka } from "../../../../constants/fonts";
 
 export default function Card({name, data}){
@@ -14,19 +13,23 @@ export default function Card({name, data}){
 
 const styles = StyleSheet.create({
     card:{
+        backgroundColor: "#FFFFFF",
+        borderColor: "#B7CEFF",
+        borderRadius: 18,
+        borderWidth: 1,
         flex: 1,
-        padding:10,
-        borderRadius: 10,
-        backgroundColor: "#ffff",
-        
-        ...Shadows.small
+        minHeight: 74,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
     },
     nameTxt:{
         fontFamily: Nunito.bold,
-        fontSize: 12
+        fontSize: 11,
+        color: "#425779",
     },
     dataTxt:{
         fontFamily: Fredoka.semiBold,
-        fontSize: 22,
+        fontSize: 23,
+        color: "#172A4D",
     }
 });

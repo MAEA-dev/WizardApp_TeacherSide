@@ -26,6 +26,7 @@ export default function AnimatedView({
   useSpring = false,
   playKey = 0,
   hidden = false,
+  enabled = true,
   style,
   ...props
 }) {
@@ -50,6 +51,14 @@ export default function AnimatedView({
     
     if (hidden) return;
 
+    if (!enabled) {
+      opacity.value = 1;
+      x.value = 0;
+      y.value = 0;
+      scale.value = 1;
+      return;
+    }
+
     const animate = (value) =>
       useSpring
         ? withSpring(value)
@@ -69,7 +78,7 @@ export default function AnimatedView({
       cancelAnimation(y);
       cancelAnimation(scale);
     };
-  }, [playKey, animation, duration, delay, useSpring, hidden]);
+  }, [playKey, animation, duration, delay, useSpring, hidden, enabled]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

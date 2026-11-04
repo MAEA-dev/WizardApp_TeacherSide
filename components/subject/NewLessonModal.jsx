@@ -1,7 +1,5 @@
-import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -11,68 +9,44 @@ import {
   View,
 } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import * as DocumentPicker from "expo-document-picker";
 import { Colors } from "../../constants/colors";
 import { Fredoka, Nunito } from "../../constants/fonts";
+import useNewLessonForm from "../../hooks/useNewLessonForm";
 
 const LANGUAGES = ["English", "Filipino", "Taglish"];
+const QUARTERS = [1, 2, 3, 4];
 
-export default function NewLessonModal({ visible, onClose, subjectName, grade }) {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [title, setTitle] = useState("");
-  const [language, setLanguage] = useState("Taglish");
-  const [isPickingFile, setIsPickingFile] = useState(false);
-
-  const pickFile = async () => {
-    setIsPickingFile(true);
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: [
-          "application/pdf",
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          "text/plain",
-        ],
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-
-      if (!result.canceled && result.assets?.[0]) {
-        setSelectedFile(result.assets[0]);
-      }
-    } catch (error) {
-      Alert.alert(
-        "Unable to select file",
-        error instanceof Error ? error.message : "Please try again."
-      );
-    } finally {
-      setIsPickingFile(false);
-    }
-  };
-
-  const resetForm = () => {
-    setSelectedFile(null);
-    setTitle("");
-    setLanguage("Taglish");
-  };
-
-  const closeModal = () => {
-    resetForm();
-    onClose();
-  };
-
-  const handleGeneratePress = () => {
-    Alert.alert(
-      "UI preview only",
-      "The form is ready for generateLessonFromFile, but lesson generation is not connected yet."
-    );
-  };
-
-  const canGenerate = Boolean(selectedFile && title.trim());
+export default function NewLessonModal({
+  visible,
+  onClose,
+  subjectId,
+  subjectName,
+  grade,
+}) {
+  const {
+    selectedFile,
+    title,
+    setTitle,
+    language,
+    setLanguage,
+    quarter,
+    setQuarter,
+    isPickingFile,
+    isGenerating,
+    generationError,
+    pickFile,
+    closeModal,
+    handleGeneratePress,
+    canGenerate,
+    quarterLabel,
+  } = useNewLessonForm({ onClose, subjectId });
 
   return (
     <Modal
       animationType="slide"
-      onRequestClose={closeModal}
+      onRequestClose={() => {
+        if (!isGenerating) closeModal();
+      }}
       transparent
       visible={visible}
     >
@@ -87,6 +61,7 @@ export default function NewLessonModal({ visible, onClose, subjectName, grade })
             </View>
             <Pressable
               accessibilityLabel="Close new lesson"
+              disabled={isGenerating}
               onPress={closeModal}
               style={styles.closeButton}
             >
@@ -101,7 +76,7 @@ export default function NewLessonModal({ visible, onClose, subjectName, grade })
           >
             <Pressable
               accessibilityRole="button"
-              disabled={isPickingFile}
+              disabled={isPickingFile || isGenerating}
               onPress={pickFile}
               style={styles.filePicker}
             >
@@ -142,6 +117,37 @@ export default function NewLessonModal({ visible, onClose, subjectName, grade })
             </View>
 
             <View style={styles.field}>
+              <Text style={styles.label}>Quarter *</Text>
+              <View style={styles.languageOptions}>
+                {QUARTERS.map((option) => {
+                  const isSelected = quarter === option;
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      disabled={isGenerating}
+                      key={option}
+                      onPress={() => setQuarter(option)}
+                      style={[
+                        styles.languageOption,
+                        isSelected && styles.languageOptionSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.languageText,
+                          isSelected && styles.languageTextSelected,
+                        ]}
+                      >
+                        {quarterLabel(option)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.field}>
               <Text style={styles.label}>Lesson language</Text>
               <View style={styles.languageOptions}>
                 {LANGUAGES.map((option) => {
@@ -171,10 +177,15 @@ export default function NewLessonModal({ visible, onClose, subjectName, grade })
               </View>
             </View>
 
+            {!!generationError && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {generationError}
+              </Text>
+            )}
 
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ disabled: !canGenerate }}
+              accessibilityState={{ disabled: !canGenerate, busy: isGenerating }}
               disabled={!canGenerate}
               onPress={handleGeneratePress}
               style={[
@@ -182,7 +193,11 @@ export default function NewLessonModal({ visible, onClose, subjectName, grade })
                 !canGenerate && styles.generateButtonDisabled,
               ]}
             >
-              <Text style={styles.generateButtonText}>Generate lesson</Text>
+              {isGenerating ? (
+                <ActivityIndicator color={Colors.surface} />
+              ) : (
+                <Text style={styles.generateButtonText}>Generate lesson</Text>
+              )}
             </Pressable>
           </ScrollView>
         </View>

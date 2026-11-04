@@ -4,7 +4,7 @@ import { Fredoka, Nunito } from "../../../constants/fonts";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
 import { Colors } from "../../../constants/colors";
 
-export default function LessonHeader({ subtitle, onBack }) {
+export default function LessonHeader({ title, subtitle, onBack }) {
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -16,7 +16,7 @@ export default function LessonHeader({ subtitle, onBack }) {
         <MaterialIcons name="arrow-back" size={22} color={colors.text} />
       </TouchableOpacity>
       <View style={styles.copy}>
-        <Text style={styles.title}>Lesson editor</Text>
+        <Text numberOfLines={1} style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
       <View style={styles.icon}>
@@ -45,11 +45,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  copy: { flex: 1 },
+  copy: { flex: 1, minWidth: 0 },
   title: {
     color: colors.text,
     fontFamily: Fredoka.semiBold,
     fontSize: 20,
+    textTransform: "capitalize",
   },
   subtitle: {
     color: colors.muted,

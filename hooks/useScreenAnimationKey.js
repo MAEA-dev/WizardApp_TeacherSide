@@ -3,28 +3,17 @@ import { useFocusEffect } from 'expo-router';
 
 export default function useScreenAnimationKey() {
   const [playKey, setPlayKey] = useState(0);
-  const [hidden, setHidden] = useState(false);
-  const timer = useRef(null);
-  const firstFocus = useRef(true);
+  const hasFocused = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
-      clearTimeout(timer.current);
-      setHidden(false);
-
-    
-      if (firstFocus.current) {
-        firstFocus.current = false;
+      if (hasFocused.current) {
+        setPlayKey((key) => key + 1);
       } else {
-        setPlayKey((k) => k + 1);
+        hasFocused.current = true;
       }
-
-      return () => {
-        
-        timer.current = setTimeout(() => setHidden(true), 400);
-      };
     }, [])
   );
 
-  return { playKey, hidden };
+  return { playKey, hidden: false };
 }
