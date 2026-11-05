@@ -1,4 +1,11 @@
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Nunito } from "../../../constants/fonts";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
@@ -6,6 +13,7 @@ import AnswerChoicesField from "./AnswerChoicesField";
 
 export default function InteractiveStepCard({
   step,
+  index,
   number,
   isEditing,
   draftText,
@@ -18,6 +26,10 @@ export default function InteractiveStepCard({
   onChangeAnswer,
   error,
   onToggleEdit,
+  onUploadImage,
+  onRemoveImage,
+  isUploadingImage,
+  canUploadImage,
 }) {
   const isExplanation = step.type === "say";
   const text = isExplanation ? step.text : step.question;
@@ -62,6 +74,52 @@ export default function InteractiveStepCard({
         ) : (
           <>
             <Text style={styles.body}>{text}</Text>
+            {isExplanation && step.imageUrl ? (
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: step.imageUrl }}
+                  style={styles.lessonImage}
+                  resizeMode="cover"
+                  accessibilityLabel="Teacher-uploaded lesson photo"
+                />
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove lesson photo"
+                  disabled={isUploadingImage}
+                  onPress={() => onRemoveImage(index, step)}
+                  style={styles.imageAction}
+                >
+                  <MaterialIcons name="delete-outline" size={16} color="#B42318" />
+                  <Text style={styles.removeImageText}>Remove photo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            {isExplanation && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={step.imageUrl ? "Replace lesson photo" : "Upload lesson photo"}
+                disabled={isUploadingImage || (!step.imageUrl && !canUploadImage)}
+                onPress={() => onUploadImage(index, step)}
+                style={[
+                  styles.imageAction,
+                  (isUploadingImage || (!step.imageUrl && !canUploadImage)) &&
+                    styles.disabledImageAction,
+                ]}
+              >
+                <MaterialIcons
+                  name={isUploadingImage ? "hourglass-empty" : "add-photo-alternate"}
+                  size={16}
+                  color={colors.primary}
+                />
+                <Text style={styles.uploadImageText}>
+                  {isUploadingImage
+                    ? "Uploading photo..."
+                    : step.imageUrl
+                    ? "Replace photo"
+                    : "Upload photo"}
+                </Text>
+              </TouchableOpacity>
+            )}
             {!isExplanation && (
               <>
                 <View style={styles.choices}>
@@ -137,6 +195,38 @@ const styles = StyleSheet.create({
     fontFamily: Nunito.medium,
     fontSize: 11,
     lineHeight: 15,
+  },
+  imageContainer: {
+    gap: 6,
+  },
+  lessonImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 10,
+    backgroundColor: "#F2F0FA",
+  },
+  imageAction: {
+    alignSelf: "flex-start",
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: "#F5F3FF",
+  },
+  disabledImageAction: {
+    opacity: 0.5,
+  },
+  uploadImageText: {
+    color: colors.primary,
+    fontFamily: Nunito.bold,
+    fontSize: 10,
+  },
+  removeImageText: {
+    color: "#B42318",
+    fontFamily: Nunito.bold,
+    fontSize: 10,
   },
   textInput: {
     minHeight: 48,

@@ -31,5 +31,6 @@ export const auth =
       });
 
 export const functions = getFunctions(app, "us-central1");
+export const lessonFunctions = getFunctions(app, "asia-southeast1");
 export const storage = getStorage(app);
 export const db = getFirestore(app);

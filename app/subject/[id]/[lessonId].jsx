@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   Pressable,
   ScrollView,
@@ -8,10 +9,21 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "../../../services/firebaseConfig";
-import { subscribeToLessonCompletions } from "../../../services/teacherClasses";
+import {
+  deleteObject,
+  getDownloadURL,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
+import { auth, db, storage } from "../../../services/firebaseConfig";
+import {
+  publishTeacherLesson,
+  subscribeToLessonCompletions,
+  updateTeacherLesson,
+} from "../../../services/teacherClasses";
 import useLessonEditor from "../../../hooks/useLessonEditor";
 import LessonActions from "../../../components/subject/lessonEditor/LessonActions";
 import LessonContentCard from "../../../components/subject/lessonEditor/LessonContentCard";
@@ -34,6 +46,9 @@ export default function LessonScreen() {
   const [resultsError, setResultsError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [uploadingImageIndex, setUploadingImageIndex] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   useEffect(() => {
     if (!currentLessonId) {
       setLoadError('Lesson not found.');
@@ -75,6 +90,7 @@ export default function LessonScreen() {
             studentName: result.studentName,
             correctAnswers: Number(result.correctAnswers) || 0,
             totalQuestions: Number(result.totalQuestions) || 0,
+            durationSeconds: result.durationSeconds,
             completedAt: result.completedAt,
           }))
         );
@@ -92,6 +108,203 @@ export default function LessonScreen() {
   const aiLesson = lessonDocument?.aiLesson;
   const editor = useLessonEditor(aiLesson, currentLessonId);
 
+  const handleSaveLesson = async () => {
+    if (isSaving || uploadingImageIndex !== null || !lessonDocument) return;
+
+    const changes = editor.getChangesToSave();
+    if (!changes) return;
+
+    setIsSaving(true);
+    try {
+      await updateTeacherLesson(currentLessonId, changes);
+      Alert.alert(
+        "Lesson updated",
+        lessonDocument.isPublished
+          ? "Your changes are saved and available to students."
+          : "Your lesson changes have been saved."
+      );
+    } catch (error) {
+      console.error("Unable to save lesson changes:", error);
+      Alert.alert(
+        "Unable to save lesson",
+        error instanceof Error ? error.message : "Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveStepImage = async (stepIndex, imageFields) => {
+    const updatedSteps = editor.interactiveSteps.map((step, index) => {
+      if (index !== stepIndex) return step;
+      const updatedStep = { ...step };
+      delete updatedStep.imageUrl;
+      delete updatedStep.imagePath;
+      return { ...updatedStep, ...imageFields };
+    });
+    await updateTeacherLesson(currentLessonId, {
+      interactiveSteps: updatedSteps,
+    });
+  };
+
+  const handleUploadStepImage = async (stepIndex, step) => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert("Sign in required", "Sign in again before uploading a photo.");
+      return;
+    }
+
+    const currentImageCount = editor.interactiveSteps.filter(
+      (item) => typeof item.imageUrl === "string" && item.imageUrl
+    ).length;
+    if (!step.imageUrl && currentImageCount >= 2) {
+      Alert.alert(
+        "Image limit reached",
+        "A lesson can have photos on up to two explanation steps."
+      );
+      return;
+    }
+
+    let selection;
+    try {
+      selection = await DocumentPicker.getDocumentAsync({
+        type: ["image/jpeg", "image/png", "image/webp"],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+    } catch (error) {
+      console.error("Unable to select lesson photo:", error);
+      Alert.alert(
+        "Unable to select photo",
+        error instanceof Error ? error.message : "Please try again."
+      );
+      return;
+    }
+    if (selection.canceled || !selection.assets?.[0]) return;
+
+    const asset = selection.assets[0];
+    const selectedMimeType =
+      asset.mimeType === "image/jpg" ? "image/jpeg" : asset.mimeType;
+    const inferredType = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+    }[asset.name?.split(".").pop()?.toLowerCase()];
+    const contentType = selectedMimeType || inferredType;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
+      Alert.alert("Unsupported photo", "Choose a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (asset.size > 8 * 1024 * 1024) {
+      Alert.alert("Photo is too large", "Choose an image smaller than 8 MB.");
+      return;
+    }
+
+    setUploadingImageIndex(stepIndex);
+    let uploadedImageRef = null;
+    try {
+      const response = await fetch(asset.uri);
+      if (!response.ok) {
+        throw new Error("The selected photo could not be read.");
+      }
+      const imageBlob = await response.blob();
+      if (!imageBlob.size || imageBlob.size > 8 * 1024 * 1024) {
+        throw new Error("Choose a non-empty image smaller than 8 MB.");
+      }
+
+      const extension = contentType.split("/")[1].replace("jpeg", "jpg");
+      const imagePath = `lessonImages/${user.uid}/${currentLessonId}/step-${
+        stepIndex + 1
+      }-${Date.now()}.${extension}`;
+      uploadedImageRef = ref(storage, imagePath);
+      await uploadBytes(uploadedImageRef, imageBlob, { contentType });
+      const imageUrl = await getDownloadURL(uploadedImageRef);
+      await saveStepImage(stepIndex, { imageUrl, imagePath });
+
+      const ownedImagePrefix = `lessonImages/${user.uid}/${currentLessonId}/`;
+      if (
+        step.imagePath?.startsWith(ownedImagePrefix) &&
+        step.imagePath !== imagePath
+      ) {
+        try {
+          await deleteObject(ref(storage, step.imagePath));
+        } catch (error) {
+          console.warn("Previous lesson photo cleanup failed:", error);
+        }
+      }
+    } catch (error) {
+      if (uploadedImageRef) {
+        try {
+          await deleteObject(uploadedImageRef);
+        } catch (cleanupError) {
+          console.warn("Lesson photo cleanup failed:", cleanupError);
+        }
+      }
+      console.error("Unable to upload lesson photo:", error);
+      Alert.alert(
+        "Photo upload failed",
+        error instanceof Error ? error.message : "Please try again."
+      );
+    } finally {
+      setUploadingImageIndex(null);
+    }
+  };
+
+  const handleRemoveStepImage = async (stepIndex, step) => {
+    try {
+      await saveStepImage(stepIndex, {});
+      const ownedImagePrefix = `lessonImages/${auth.currentUser?.uid}/${currentLessonId}/`;
+      if (step.imagePath?.startsWith(ownedImagePrefix)) {
+        try {
+          await deleteObject(ref(storage, step.imagePath));
+        } catch (error) {
+          console.warn("Removed lesson photo cleanup failed:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Unable to remove lesson photo:", error);
+      Alert.alert(
+        "Unable to remove photo",
+        error instanceof Error ? error.message : "Please try again."
+      );
+    }
+  };
+
+  const handlePublishLesson = async () => {
+    if (lessonDocument?.isPublished || isPublishing) return;
+
+    setIsPublishing(true);
+    try {
+      await publishTeacherLesson(currentLessonId);
+      Alert.alert(
+        "Lesson published",
+        "Students in this class can now access the lesson."
+      );
+    } catch (error) {
+      console.error("Unable to publish lesson:", error);
+      Alert.alert(
+        "Unable to publish lesson",
+        error instanceof Error ? error.message : "Please try again."
+      );
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const confirmPublishLesson = () => {
+    if (lessonDocument?.isPublished || isPublishing) return;
+
+    Alert.alert(
+      "Publish lesson?",
+      "Students in this class will be able to open this lesson.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Publish", onPress: handlePublishLesson },
+      ]
+    );
+  };
+
   if (isLoading || loadError || !lessonDocument) {
     return (
       <View style={styles.notFound}>
@@ -108,7 +321,7 @@ export default function LessonScreen() {
   }
 
   const title = lessonDocument.displayTitle ?? lessonDocument.title;
-  const subtitle = `${lessonDocument.subjectName ?? 'Subject'} · Grade ${lessonDocument.gradeLevel ?? ''}`;
+  const subtitle = `${lessonDocument.subjectName ?? 'Subject'} · ${lessonDocument.gradeLevel ?? ''}`;
 
   return (
     <View style={styles.screen}>
@@ -181,6 +394,12 @@ export default function LessonScreen() {
               onChangeAnswer={editor.setDraftAnswer}
               editError={editor.editStepError}
               onToggleEdit={editor.toggleStepEditing}
+              onUploadImage={handleUploadStepImage}
+              onRemoveImage={handleRemoveStepImage}
+              uploadingImageIndex={uploadingImageIndex}
+              imageCount={editor.interactiveSteps.filter(
+                (step) => typeof step.imageUrl === "string" && step.imageUrl
+              ).length}
               addingStepType={editor.addingStepType}
               newStepDraft={editor.newStepDraft}
               newStepError={editor.newStepError}
@@ -207,7 +426,14 @@ export default function LessonScreen() {
             />
 
             <LessonFinalMessage message={aiLesson?.finalMessage ?? ''} />
-            <LessonActions />
+            <LessonActions
+              onSave={handleSaveLesson}
+              isSaving={isSaving}
+              isSaveDisabled={uploadingImageIndex !== null}
+              onPublish={confirmPublishLesson}
+              isPublishing={isPublishing}
+              isPublished={lessonDocument.isPublished === true}
+            />
           </>
         )}
       </ScrollView>

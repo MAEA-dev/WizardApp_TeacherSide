@@ -47,17 +47,36 @@ export default function AddClassModal({
             value={subjectName}
           />
 
-          <Text style={styles.label}>Grade</Text>
-          <TextInput
-            accessibilityLabel="Grade"
-            editable={!isSaving}
-            keyboardType="number-pad"
-            onChangeText={setGrade}
-            placeholder="Enter grade level"
-            placeholderTextColor={Colors.textMuted}
-            style={styles.input}
-            value={grade}
-          />
+          <Text style={styles.label}>Grade level</Text>
+          <View style={styles.gradeOptions}>
+            {['4', '5', '6'].map((gradeOption) => {
+              const isSelected = grade === gradeOption;
+
+              return (
+                <TouchableOpacity
+                  key={gradeOption}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Grade ${gradeOption}`}
+                  accessibilityState={{ selected: isSelected, disabled: isSaving }}
+                  disabled={isSaving}
+                  onPress={() => setGrade(gradeOption)}
+                  style={[
+                    styles.gradeOption,
+                    isSelected && styles.gradeOptionSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.gradeOptionText,
+                      isSelected && styles.gradeOptionTextSelected,
+                    ]}
+                  >
+                    {gradeOption}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           {!!error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -127,6 +146,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingHorizontal: 13,
     paddingVertical: 12,
+  },
+  gradeOptions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  gradeOption: {
+    flex: 1,
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.bg,
+    borderRadius: 12,
+  },
+  gradeOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  gradeOptionText: {
+    color: Colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  gradeOptionTextSelected: {
+    color: Colors.surface,
   },
   errorText: {
     color: Colors.danger,

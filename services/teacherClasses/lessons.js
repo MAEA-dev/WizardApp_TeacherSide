@@ -1,5 +1,6 @@
 import {
   collection,
+  doc,
   onSnapshot,
   query,
   where,
@@ -8,6 +9,46 @@ import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../firebaseConfig';
 
 const deleteTeacherLessonCall = httpsCallable(functions, 'deleteTeacherLesson');
+const publishTeacherLessonCall = httpsCallable(functions, 'publishTeacherLesson');
+const updateTeacherLessonCall = httpsCallable(functions, 'updateTeacherLesson');
+
+export const updateTeacherLesson = async (lessonId, changes) => {
+  if (!lessonId) {
+    throw new Error('A lesson is required to save changes.');
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to update this lesson.');
+  }
+
+  await user.getIdToken(true);
+  const result = await updateTeacherLessonCall({ lessonId, ...changes });
+  if (!result.data?.success) {
+    throw new Error('Unable to update this lesson. Please try again.');
+  }
+
+  return result.data;
+};
+
+export const publishTeacherLesson = async (lessonId) => {
+  if (!lessonId) {
+    throw new Error('A lesson is required to publish it.');
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to publish this lesson.');
+  }
+
+  await user.getIdToken(true);
+  const result = await publishTeacherLessonCall({ lessonId });
+  if (!result.data?.success) {
+    throw new Error('Unable to publish this lesson. Please try again.');
+  }
+
+  return result.data;
+};
 
 export const subscribeToSubjectLessons = (subjectId, onLessons, onError) =>
   onSnapshot(

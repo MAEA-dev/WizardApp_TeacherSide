@@ -2,10 +2,15 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { httpsCallable } from 'firebase/functions';
-import { deleteObject, ref, uploadBytes } from 'firebase/storage';
-import { auth, functions, storage } from '../services/firebaseConfig';
+import { auth, lessonFunctions } from '../services/firebaseConfig';
+import extractLessonText from '../utils/extractLessonText';
 
-const generateLessonFromFile = httpsCallable(functions, 'generateLessonFromFile');
+const generateLessonFromFile = httpsCallable(
+  lessonFunctions,
+  'generateLessonFromFile',
+  { timeout: 300000 }
+);
+const MAX_TEXT_LENGTH = 20000;
 const quarterLabel = (quarterNumber) =>
   `${quarterNumber}${['st', 'nd', 'rd', 'th'][quarterNumber - 1]}`;
 
@@ -73,26 +78,26 @@ export default function useNewLessonForm({ onClose, subjectId }) {
 
     setIsGenerating(true);
     setGenerationError('');
-    let uploadedFileRef;
 
     try {
       const fileName = selectedFile.name || 'lesson-file';
-      const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const filePath = `tempLessonFiles/${user.uid}/${Date.now()}_${safeFileName}`;
-      uploadedFileRef = ref(storage, filePath);
+      const extractedText = await extractLessonText(selectedFile);
+      const text = extractedText
+        .replace(/\r\n/g, '\n')
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ' ')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
+        .slice(0, MAX_TEXT_LENGTH);
 
-      const fileResponse = await fetch(selectedFile.uri);
-      if (!fileResponse.ok) {
-        throw new Error('Unable to read the selected lesson file.');
+      if (!text) {
+        throw new Error(
+          'Could not extract readable text from the file. Scanned PDFs may need OCR.'
+        );
       }
 
-      const fileBlob = await fileResponse.blob();
-      await uploadBytes(uploadedFileRef, fileBlob, {
-        contentType: selectedFile.mimeType || 'application/octet-stream',
-      });
-
       const result = await generateLessonFromFile({
-        filePath,
+        text,
         fileName,
         title: title.trim(),
         language: language.toLowerCase(),
@@ -113,18 +118,6 @@ export default function useNewLessonForm({ onClose, subjectId }) {
     } catch (error) {
       console.error('Unable to create lesson:', error);
       let message = error instanceof Error ? error.message : 'Unable to create lesson.';
-
-      if (uploadedFileRef) {
-        try {
-          await deleteObject(uploadedFileRef);
-        } catch (cleanupError) {
-          if (cleanupError.code !== 'storage/object-not-found') {
-            console.error('Unable to clean up uploaded lesson file:', cleanupError);
-            message = `${message} The uploaded file could not be cleaned up.`;
-          }
-        }
-      }
-
       setGenerationError(message);
     } finally {
       setIsGenerating(false);

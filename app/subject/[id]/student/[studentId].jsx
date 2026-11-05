@@ -17,6 +17,7 @@ import {
   isStudentAtRisk,
   isStudentInactive,
 } from '../../../../utils/studentActivity';
+import { formatDurationSeconds } from '../../../../utils/formatDuration';
 
 const getScorePercent = (completion) => {
   const percentage = Number(completion.percentage);
@@ -48,7 +49,7 @@ const getInitials = (name) =>
     .toUpperCase();
 
 function PerformanceRing({ score }) {
-  const size = 76;
+  const size = 84;
   const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -231,6 +232,18 @@ export default function StudentPerformanceRoute() {
       : null;
   }, [lessonResults]);
 
+  const averageDurationSeconds = useMemo(() => {
+    const durations = lessonResults
+      .map(({ completion }) => completion.durationSeconds)
+      .filter((duration) => duration !== null && duration !== undefined && duration !== '')
+      .map(Number)
+      .filter((duration) => Number.isFinite(duration) && duration >= 0);
+
+    return durations.length
+      ? Math.round(durations.reduce((sum, duration) => sum + duration, 0) / durations.length)
+      : null;
+  }, [lessonResults]);
+
   const classAverage = useMemo(() => {
     const scoresByStudent = new Map();
     completions.forEach((completion) => {
@@ -342,7 +355,11 @@ export default function StudentPerformanceRoute() {
                 </View>
                 <View style={styles.metricCard}>
                   <Text style={styles.metricLabel}>Avg. time</Text>
-                  <Text style={styles.metricValue}>—</Text>
+                  <Text numberOfLines={1} style={styles.metricValue}>
+                    {averageDurationSeconds === null
+                      ? '—'
+                      : formatDurationSeconds(averageDurationSeconds)}
+                  </Text>
                 </View>
                 <View style={styles.metricCard}>
                   <Text style={styles.metricLabel}>Last active</Text>
@@ -351,7 +368,7 @@ export default function StudentPerformanceRoute() {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.timeNote}>Time spent is not recorded for completed lessons.</Text>
+              <Text style={styles.timeNote}>Average across completed lessons with recorded time.</Text>
 
               <View style={styles.lessonScoresCard}>
                 <Text style={styles.cardTitle}>Lesson scores</Text>
@@ -441,7 +458,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: Colors.text,
     fontFamily: Nunito.bold,
-    fontSize: 16,
+    fontSize: 18,
   },
   centered: {
     flex: 1,
@@ -460,16 +477,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: 10,
-    minHeight: 66,
+    minHeight: 72,
     padding: 9,
   },
   avatar: {
     alignItems: 'center',
     backgroundColor: '#F3B1B4',
     borderRadius: 24,
-    height: 44,
+    height: 48,
     justifyContent: 'center',
-    width: 44,
+    width: 48,
   },
   avatarText: {
     color: Colors.text,
@@ -484,7 +501,7 @@ const styles = StyleSheet.create({
   studentName: {
     color: Colors.text,
     fontFamily: Nunito.bold,
-    fontSize: 13,
+    fontSize: 14,
   },
   studentBadges: {
     alignItems: 'center',
@@ -494,12 +511,12 @@ const styles = StyleSheet.create({
   subject: {
     color: Colors.textMuted,
     fontFamily: Nunito.medium,
-    fontSize: 10,
+    fontSize: 11,
   },
   statusBadge: {
     borderRadius: 10,
     fontFamily: Nunito.bold,
-    fontSize: 9,
+    fontSize: 10,
     overflow: 'hidden',
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -530,14 +547,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
-    minHeight: 94,
-    padding: 10,
+    minHeight: 102,
+    padding: 12,
   },
   ring: {
     alignItems: 'center',
-    height: 76,
+    height: 84,
     justifyContent: 'center',
-    width: 76,
+    width: 84,
   },
   ringLabel: {
     alignItems: 'center',
@@ -561,17 +578,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: Colors.text,
     fontFamily: Nunito.bold,
-    fontSize: 12,
+    fontSize: 13,
   },
   performanceText: {
     color: Colors.textMuted,
     fontFamily: Nunito.medium,
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 11,
+    lineHeight: 15,
   },
   metrics: {
     flexDirection: 'row',
-    gap: 7,
+    gap: 8,
   },
   metricCard: {
     backgroundColor: Colors.surface,
@@ -580,8 +597,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flex: 1,
     minWidth: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 9,
   },
   metricLabel: {
     color: Colors.textMuted,
@@ -591,7 +608,7 @@ const styles = StyleSheet.create({
   metricValue: {
     color: Colors.text,
     fontFamily: Nunito.extraBold,
-    fontSize: 15,
+    fontSize: 16,
     marginTop: 2,
   },
   timeNote: {

@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
 
   btnContainer: {
     marginTop: 20,
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     justifyContent: 'center',
     gap: 10,
   },

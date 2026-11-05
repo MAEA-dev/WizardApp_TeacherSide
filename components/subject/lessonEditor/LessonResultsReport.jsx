@@ -11,6 +11,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Fredoka, Nunito } from "../../../constants/fonts";
+import { formatDurationSeconds } from "../../../utils/formatDuration";
 import { LESSON_EDITOR_COLORS as colors } from "./theme";
 
 const escapeCsvCell = (value) => {
@@ -28,6 +29,7 @@ const createCsvReport = (lessonTitle, results) => {
     "Score (%)",
     "Correct answers",
     "Total questions",
+    "Time spent",
   ];
   const rows = results.map(({ student, result }) => [
     lessonTitle,
@@ -37,6 +39,7 @@ const createCsvReport = (lessonTitle, results) => {
       : "",
     result?.correctAnswers ?? "",
     result?.totalQuestions ?? "",
+    formatDurationSeconds(result?.durationSeconds),
   ]);
 
   return [columns, ...rows]
@@ -200,6 +203,9 @@ export default function LessonResultsReport({
                       ? `${result.correctAnswers} of ${result.totalQuestions} correct`
                       : "Score unavailable"}
                   </Text>
+                  <Text style={styles.timeDetail}>
+                    Time spent: {formatDurationSeconds(result?.durationSeconds)}
+                  </Text>
                 </View>
                 <Text style={[styles.score, !(result?.totalQuestions > 0) && styles.pendingScore]}>
                   {result?.totalQuestions > 0 ? `${getScorePercent(result)}%` : "—"}
@@ -323,6 +329,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   scoreDetail: {
+    color: colors.muted,
+    fontFamily: Nunito.medium,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  timeDetail: {
     color: colors.muted,
     fontFamily: Nunito.medium,
     fontSize: 11,

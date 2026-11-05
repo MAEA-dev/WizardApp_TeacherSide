@@ -182,6 +182,30 @@ export default function useLessonEditor(aiLesson, lessonId) {
     });
   };
 
+  const getChangesToSave = () => {
+    if (addingStepType) {
+      setNewStepError("Add or cancel the new step before saving changes.");
+      return null;
+    }
+
+    let stepsToSave = interactiveSteps;
+    if (editingStepIndex !== null) {
+      const currentStep = interactiveSteps[editingStepIndex];
+      if (!currentStep) return null;
+
+      const updatedStep = getEditedStep(currentStep);
+      if (!updatedStep) return null;
+
+      stepsToSave = interactiveSteps.map((step, index) =>
+        index === editingStepIndex ? updatedStep : step
+      );
+      setInteractiveSteps(stepsToSave);
+      setEditingStepIndex(null);
+    }
+
+    return { interactiveSteps: stepsToSave, summary };
+  };
+
   return {
     interactiveSteps,
     summary,
@@ -218,6 +242,7 @@ export default function useLessonEditor(aiLesson, lessonId) {
     addSummaryPoint,
     updateSummaryPoint,
     removeSummaryPoint,
+    getChangesToSave,
     cancelAddingStep: () => setAddingStepType(null),
   };
 }

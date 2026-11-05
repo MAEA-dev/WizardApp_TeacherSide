@@ -66,6 +66,23 @@ export const getAnswerCounts = (quarterCompletions) => ({
   ),
 });
 
+export const getAverageDurationSeconds = (completions) => {
+  const durations = completions
+    .map(({ durationSeconds }) => {
+      if (durationSeconds === null || durationSeconds === undefined || durationSeconds === '') {
+        return null;
+      }
+
+      const duration = Number(durationSeconds);
+      return Number.isFinite(duration) && duration >= 0 ? duration : null;
+    })
+    .filter((duration) => duration !== null);
+
+  return durations.length
+    ? Math.round(durations.reduce((sum, duration) => sum + duration, 0) / durations.length)
+    : null;
+};
+
 export const getMostMissedQuestions = (quarterCompletions) => {
   const questionStats = new Map();
   quarterCompletions.forEach((completion) => {

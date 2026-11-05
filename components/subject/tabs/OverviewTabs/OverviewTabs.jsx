@@ -6,9 +6,11 @@ import ClassPerformance from './ClassPerformance';
 import QuestionPerformanceCard from './QuestionPerformanceCard';
 import { Colors } from '../../../../constants/colors';
 import { Nunito } from '../../../../constants/fonts';
+import { formatDurationSeconds } from '../../../../utils/formatDuration';
 import {
   filterCompletionsByQuarter,
   getAnswerCounts,
+  getAverageDurationSeconds,
   getCompletedLessonCount,
   getLessonIdsByQuarter,
   getMostMissedQuestions,
@@ -63,6 +65,11 @@ export default function OverviewTab({
     return getMostMissedQuestions(quarterCompletions);
   }, [quarterCompletions]);
 
+  const averageTime = useMemo(
+    () => formatDurationSeconds(getAverageDurationSeconds(quarterCompletions)),
+    [quarterCompletions]
+  );
+
   const completedLessons = useMemo(() => {
     return getCompletedLessonCount(lessons, completions, gradeStudentCount);
   }, [completions, gradeStudentCount, lessons]);
@@ -80,7 +87,7 @@ export default function OverviewTab({
       <DetailsHeader
         gradeStudentCount={gradeStudentCount}
         lessonCount={lessons.length}
-        averageTime="—"
+        averageTime={averageTime}
       />
       <LessonProgress
         totalLessons={lessons.length}

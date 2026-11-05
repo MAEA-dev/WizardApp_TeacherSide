@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
     fontFamily: Nunito.medium,
     fontSize: 12,
     marginTop: 1,
+    fontStyle: "capitalize",
   },
   icon: {
     width: 38,
