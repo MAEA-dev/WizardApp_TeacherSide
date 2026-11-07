@@ -37,10 +37,15 @@ import { Nunito } from "../../../constants/fonts";
 
 export default function LessonScreen() {
   const [activeTab, setActiveTab] = useState("results");
-  const { lessonId } = useLocalSearchParams();
+  const { id, lessonId } = useLocalSearchParams();
   const router = useRouter();
+  const routeSubjectId = Array.isArray(id) ? id[0] : id;
   const currentLessonId = Array.isArray(lessonId) ? lessonId[0] : lessonId;
   const [lessonDocument, setLessonDocument] = useState(null);
+  const [subjectStatus, setSubjectStatus] = useState({
+    subjectId: null,
+    status: "loading",
+  });
   const [results, setResults] = useState([]);
   const [isLoadingResults, setIsLoadingResults] = useState(true);
   const [resultsError, setResultsError] = useState('');
@@ -49,6 +54,36 @@ export default function LessonScreen() {
   const [uploadingImageIndex, setUploadingImageIndex] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+
+  const subjectId = routeSubjectId || lessonDocument?.subjectId;
+  const subjectAvailability = !subjectId
+    ? lessonDocument
+      ? "error"
+      : "loading"
+    : subjectStatus.subjectId === subjectId
+      ? subjectStatus.status
+      : "loading";
+
+  useEffect(() => {
+    if (!subjectId) return undefined;
+    return onSnapshot(
+      doc(db, "subjects", subjectId),
+      (snapshot) => {
+        setSubjectStatus({
+          subjectId,
+          status:
+            snapshot.exists() && snapshot.data().active !== false
+              ? "active"
+              : "inactive",
+        });
+      },
+      (error) => {
+        console.error("Unable to verify subject availability:", error);
+        setSubjectStatus({ subjectId, status: "error" });
+      }
+    );
+  }, [subjectId]);
+
   useEffect(() => {
     if (!currentLessonId) {
       setLoadError('Lesson not found.');
@@ -305,13 +340,25 @@ export default function LessonScreen() {
     );
   };
 
-  if (isLoading || loadError || !lessonDocument) {
+  if (
+    isLoading ||
+    loadError ||
+    !lessonDocument ||
+    subjectAvailability !== "active"
+  ) {
     return (
       <View style={styles.notFound}>
-        {isLoading ? (
+        {isLoading || (!loadError && subjectAvailability === "loading") ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
-          <Text style={styles.notFoundText}>{loadError || 'Lesson not found.'}</Text>
+          <Text style={styles.notFoundText}>
+            {loadError ||
+              (subjectAvailability === "inactive"
+                ? "This subject is inactive and unavailable."
+                : subjectAvailability === "error"
+                  ? "Unable to verify whether this subject is active."
+                  : "Lesson not found.")}
+          </Text>
         )}
         <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
           <Text style={styles.backLinkText}>Go back</Text>

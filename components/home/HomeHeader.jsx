@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors , Opacity} from '../../constants/colors';
-import { Shadows, TextShadows } from '../../constants/shadows';
+import { TextShadows } from '../../constants/shadows';
 import { Fredoka } from '../../constants/fonts';
 import AccountDrawer from './AccountDrawer';
 
@@ -11,7 +11,6 @@ export default function HomeHeader({
   name = "teacher Name",
   gender = "male",
   email = "",
-  onAddClass,
 }) {
   const [accountMenuVisible, setAccountMenuVisible] = useState(false);
   const router = useRouter();
@@ -36,14 +35,6 @@ export default function HomeHeader({
             <Text style={styles.greetingText}>Hello, {greeting}</Text>
            <Text style={styles.teacherNameText}>{name}</Text>
          </View>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Add class"
-            onPress={onAddClass}
-            style={styles.button}
-          >
-              <Text style={styles.addText}>Add class</Text>
-          </TouchableOpacity>
       </View> 
       <AccountDrawer
         visible={accountMenuVisible}
@@ -106,17 +97,4 @@ const styles = StyleSheet.create({
     color: Colors.bg,
     ...TextShadows.medium
   },
-  button: {
-    flexShrink: 0,
-    backgroundColor: Colors.warning,
-    padding: 10,
-    borderRadius: 20,
-    ...Shadows.large
-  },
-   addText:{
-      fontFamily: Fredoka.semiBold,
-      fontSize: 15,
-      color: Colors.bg,
-      ...TextShadows.subtle
-  }
 });

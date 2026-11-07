@@ -23,7 +23,6 @@ export default function LessonCard({
     id,
     subjectId,
     title,
-    teacher,
     status,
     quarter,
     createdAt,
@@ -32,8 +31,6 @@ export default function LessonCard({
 }){
     const router = useRouter();
     const isVerified = status === "published";
-    const prefix = teacher?.gender === "Female" ? "Ms" : "Mr";
-    const lastName = teacher?.lastName
     return(
         <View style={styles.card}>
             <TouchableOpacity
@@ -67,11 +64,6 @@ export default function LessonCard({
             
                 <View style={styles.description}>
                 <Text style={styles.titleTxt} numberOfLines={1} >{title}</Text>
-                {!!lastName && (
-                    <Text style={[styles.subtitle,{fontSize:12, marginTop: 5, color: '#36559C'}]}>
-                        Uploaded by {prefix}. {lastName}
-                    </Text>
-                )}
                 <View style={styles.tagRow}>
                     <View style={[styles.tag,]}>
                         {quarter != null && (

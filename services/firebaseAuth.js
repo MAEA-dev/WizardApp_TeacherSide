@@ -9,10 +9,6 @@ import {
 import {
   doc,
   getDoc,
-  getDocs,
-  query,
-  where,
-  collection,
 } from "firebase/firestore";
 
 import {
@@ -20,6 +16,7 @@ import {
 } from "firebase/functions";
 
 const createUserFn = httpsCallable(functions, "createUser");
+export const ADMIN_EMAIL = "alcantaramark638@gmail.com";
 
 export const createUser = async (data) => {
   try {
@@ -78,7 +75,6 @@ export const loginUsername = async ({
     );
 
     const user = userCredential.user;
-
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
 
@@ -88,19 +84,24 @@ export const loginUsername = async ({
     }
 
     const authenticatedUser = userSnap.data();
+    const role =
+      user.email?.toLowerCase() === ADMIN_EMAIL &&
+      authenticatedUser.role === "admin"
+        ? "admin"
+        : expectedRole;
 
-    if (authenticatedUser.role !== expectedRole) {
+    if (authenticatedUser.role !== role) {
       await signOut(auth);
 
       const error = new Error(
-        `This account is not registered as a ${expectedRole}.`
+        `This account is not registered as a ${role}.`
       );
 
       error.code = "user/role-mismatch";
       throw error;
     }
 
-    return user.uid;
+    return role;
 
   } catch (error) {
     console.log("Login error:", error);

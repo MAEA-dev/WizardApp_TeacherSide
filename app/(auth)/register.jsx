@@ -22,7 +22,11 @@ import { Colors } from '../../constants/colors';
 import AnimatedView from '../../components/Animation/AnimatedView';
 import LoadingModal from '../../components/LoadingModal';
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
-import { createUser, getAuthErrorMessage } from '../../services/firebaseAuth';
+import {
+  ADMIN_EMAIL,
+  createUser,
+  getAuthErrorMessage,
+} from '../../services/firebaseAuth';
 
 export default function Register() {
   const { width } = useWindowDimensions();
@@ -35,6 +39,7 @@ export default function Register() {
   const [username, setUsername] = useState('');
   const [gender, setGender] = useState('');
   const [email, setEmail] = useState('');
+  const [adminSetupCode, setAdminSetupCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -78,6 +83,12 @@ export default function Register() {
       return;
     }
 
+    const isAdminAccount = cleanEmail === ADMIN_EMAIL;
+    if (isAdminAccount && !adminSetupCode.trim()) {
+      setError('Enter the one-time admin setup code.');
+      return;
+    }
+
     if (password.length < 8) {
       setError('Password must contain at least 8 characters.');
       return;
@@ -95,7 +106,8 @@ export default function Register() {
         username: cleanUsername,
         email: cleanEmail,
         password,
-        role: 'teacher',
+        role: cleanEmail === ADMIN_EMAIL ? 'admin' : 'teacher',
+        ...(isAdminAccount ? { adminSetupCode: adminSetupCode.trim() } : {}),
         profile: {
           firstName: cleanFirstName,
           lastName: cleanLastName,
@@ -108,8 +120,10 @@ export default function Register() {
       }
 
       Alert.alert(
-        'Account created',
-        'Your account has been created. Sign in to continue.',
+        isAdminAccount ? 'Admin account created' : 'Account created',
+        isAdminAccount
+          ? 'Your admin account is ready. Sign in with your email or username and password.'
+          : 'Your account has been created. Sign in to continue.',
         [{ text: 'Sign in', onPress: () => router.replace('/login') }]
       );
     } catch (registrationError) {
@@ -260,7 +274,28 @@ export default function Register() {
                 />
               </View>
 
-         
+              {email.trim().toLowerCase() === ADMIN_EMAIL && (
+               <>
+                 <Text style={styles.label}>One-time Admin Setup Code</Text>
+                 <View style={styles.inputContainer}>
+                   <Feather name="key" size={19} color={Colors.textMuted} />
+                   <TextInput
+                     accessibilityLabel="One-time admin setup code"
+                     style={styles.input}
+                     placeholder="Enter the code provided by your administrator"
+                     placeholderTextColor={Colors.textMuted}
+                     value={adminSetupCode}
+                     onChangeText={setAdminSetupCode}
+                     autoCapitalize="none"
+                     autoCorrect={false}
+                     secureTextEntry
+                     editable={!isSubmitting}
+                   />
+                 </View>
+               </>
+              )}
+
+
               <Text style={styles.label}>Password</Text>
               <View style={styles.inputContainer}>
                 <Feather

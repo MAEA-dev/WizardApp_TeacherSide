@@ -1,5 +1,4 @@
 export {
-  addTeacherClass,
   subscribeToSubject,
   subscribeToSubjects,
 } from './teacherClasses/subjects';

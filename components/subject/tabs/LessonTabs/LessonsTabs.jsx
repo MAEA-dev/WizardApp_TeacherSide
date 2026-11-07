@@ -31,7 +31,6 @@ const getDeleteErrorMessage = (error) => {
 export default function LessonsTab({
   subjectId,
   lessons,
-  teacher,
   error,
   isLoading,
 }) {
@@ -74,7 +73,6 @@ export default function LessonsTab({
             id={item.id}
             subjectId={subjectId}
             title={item.title}
-            teacher={teacher}
             status={item.status}
             quarter={item.quarter}
             createdAt={item.createdAt || item.publishedAt}

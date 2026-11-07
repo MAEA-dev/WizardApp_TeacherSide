@@ -51,6 +51,17 @@ export default function SubjectDetails(){
         );
     }
 
+    if (subject.active === false) {
+        return (
+            <View style={styles.state}>
+                <Text style={styles.stateText}>This subject is inactive and unavailable.</Text>
+                <Text style={styles.backText} onPress={() => router.back()}>
+                    Go back
+                </Text>
+            </View>
+        );
+    }
+
     return(
         <View style={{flex: 1, backgroundColor: Colors.bg}}>
             
@@ -64,7 +75,6 @@ export default function SubjectDetails(){
                     <LessonsTab
                         subjectId={subject.id}
                         lessons={lessons}
-                        teacher={subject.teacherProfile}
                         error={lessonsError}
                         isLoading={isLoadingLessons}
                     />
@@ -124,5 +134,10 @@ const styles = StyleSheet.create({
     stateText: {
         color: Colors.textMuted,
         textAlign: 'center',
+    },
+    backText: {
+        color: Colors.primary,
+        fontWeight: '700',
+        padding: 12,
     },
 });

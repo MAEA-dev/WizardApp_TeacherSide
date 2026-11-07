@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import HomeHeader from '../../components/home/HomeHeader';
 import SubjectCard from '../../components/home/SubjectCard';
-import AddClassModal from '../../components/home/AddClassModal';
 import { subjectColors, Colors } from '../../constants/colors';
 import AnimatedView  from "../../components/Animation/AnimatedView"
 import useScreenAnimationKey from '../../hooks/useScreenAnimationKey';
@@ -18,38 +17,31 @@ import useHomeData from '../../hooks/useHomeData';
 
 export default function Home() {
   const { playKey, hidden } = useScreenAnimationKey();
-  const [isAddClassVisible, setIsAddClassVisible] = useState(false);
   const {
     teacherClasses,
     isLoadingClasses,
     classesError,
-    isSavingClass,
-    classError,
-    setClassError,
-    teacherUid,
     teacherProfile,
     profileError,
-    handleAddClass,
-  } = useHomeData({
-    onClassAdded: () => setIsAddClassVisible(false),
-  });
+  } = useHomeData();
   const [selectedGrade, setSelectedGrade] = useState('all');
-  const [createdByYouOnly, setCreatedByYouOnly] = useState(false);
   const [isGradeMenuVisible, setIsGradeMenuVisible] = useState(false);
-
-  const grades = useMemo(
-    () => [...new Set(teacherClasses.map((subject) => String(subject.grade)))].sort(
-      (a, b) => Number(a) - Number(b) || a.localeCompare(b)
-    ),
+  const activeClasses = useMemo(
+    () => teacherClasses.filter((subject) => subject.active !== false),
     [teacherClasses]
   );
+
+  const grades = useMemo(
+    () => [...new Set(activeClasses.map((subject) => String(subject.grade)))].sort(
+      (a, b) => Number(a) - Number(b) || a.localeCompare(b)
+    ),
+    [activeClasses]
+  );
   const filteredClasses = useMemo(
-    () => teacherClasses.filter((subject) => {
-      const matchesGrade = selectedGrade === 'all' || String(subject.grade) === selectedGrade;
-      const matchesCreator = !createdByYouOnly || subject.teacher === teacherUid;
-      return matchesGrade && matchesCreator;
-    }),
-    [createdByYouOnly, selectedGrade, teacherClasses, teacherUid]
+    () => activeClasses.filter(
+      (subject) => selectedGrade === 'all' || String(subject.grade) === selectedGrade
+    ),
+    [activeClasses, selectedGrade]
   );
 
   return (
@@ -59,10 +51,6 @@ export default function Home() {
           name={teacherProfile.name || 'Teacher'}
           gender={teacherProfile.gender}
           email={teacherProfile.email}
-          onAddClass={() => {
-            setClassError('');
-            setIsAddClassVisible(true);
-          }}
         />
       </AnimatedView>
       {!!profileError && (
@@ -72,7 +60,7 @@ export default function Home() {
       <ScrollView >
         <AnimatedView animation='slideUp' delay={500} duration={500} playKey={playKey}  style={{flex: 1} } hidden={hidden}> 
         <View style={styles.subjectGrid}>
-          {!isLoadingClasses && teacherClasses.length > 0 && (
+          {!isLoadingClasses && activeClasses.length > 0 && (
             <View style={styles.filters}>
               <View style={styles.filterRow}>
                 <Pressable
@@ -84,16 +72,6 @@ export default function Home() {
                 >
                   <Text style={styles.filterText}>
                     {selectedGrade === 'all' ? 'All grades' : `Grade ${selectedGrade}`}  ▾
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: createdByYouOnly }}
-                  onPress={() => setCreatedByYouOnly((active) => !active)}
-                  style={[styles.filterChip, createdByYouOnly && styles.activeFilterChip]}
-                >
-                  <Text style={[styles.filterText, createdByYouOnly && styles.activeFilterText]}>
-                    Created by you
                   </Text>
                 </Pressable>
               </View>
@@ -114,12 +92,16 @@ export default function Home() {
           {!isLoadingClasses && !!classesError && (
             <Text style={styles.emptyText}>{classesError}</Text>
           )}
-          {!isLoadingClasses && !classesError && teacherClasses.length === 0 && (
+          {!isLoadingClasses && !classesError && activeClasses.length === 0 && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No classes yet. Add a class to get started.</Text>
+              <Text style={styles.emptyText}>
+                {teacherClasses.length === 0
+                  ? 'No subjects have been added by the admin yet.'
+                  : 'There are no active subjects available.'}
+              </Text>
             </View>
           )}
-          {!isLoadingClasses && !classesError && teacherClasses.length > 0 && filteredClasses.length === 0 && (
+          {!isLoadingClasses && !classesError && activeClasses.length > 0 && filteredClasses.length === 0 && (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No subjects match these filters.</Text>
             </View>
@@ -127,13 +109,6 @@ export default function Home() {
         </View>
         </AnimatedView>
       </ScrollView>
-      <AddClassModal
-        visible={isAddClassVisible}
-        onClose={() => setIsAddClassVisible(false)}
-        onSubmit={handleAddClass}
-        isSaving={isSavingClass}
-        error={classError}
-      />
       <Modal
         animationType="fade"
         transparent
@@ -203,17 +178,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     paddingVertical: 8,
   },
-  activeFilterChip: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
   filterText: {
     color: Colors.text,
     fontSize: 13,
     fontWeight: '600',
-  },
-  activeFilterText: {
-    color: Colors.surface,
   },
   gradeMenuOverlay: {
     backgroundColor: 'rgba(15, 23, 42, 0.18)',

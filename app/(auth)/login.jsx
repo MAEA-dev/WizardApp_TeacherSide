@@ -52,8 +52,8 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      await loginUsername({ username: identifier, password });
-      router.replace('/Screens/home');
+      const role = await loginUsername({ username: identifier, password });
+      router.replace(role === 'admin' ? '/Admin' : '/Screens/home');
     } catch (loginError) {
       setError(getAuthErrorMessage(loginError));
     } finally {
@@ -112,11 +112,11 @@ export default function Login() {
                   <AnimatedText animation='fadeIn' style={styles.welcomeTitle}  duration={1400}  delay={800} 
                        playKey={playKey}
                        enabled={animationsEnabled}>
-                    Welcome Teacher
+                    Welcome Back
                   </AnimatedText>
 
                   <AnimatedText animation='fadeIn' style={styles.welcomeSubtitle} duration={1400} delay={1400} playKey={playKey} enabled={animationsEnabled}>
-                    Log in to upload lessons and track your class.
+                    Sign in to continue to your dashboard.
                   </AnimatedText>
                 </View>
                 <AnimatedView animation='zoomIn' duration={1400} playKey={playKey} enabled={animationsEnabled}>
