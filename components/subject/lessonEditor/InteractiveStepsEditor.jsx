@@ -23,6 +23,7 @@ export default function InteractiveStepsEditor({
   onRemoveImage,
   uploadingImageIndex,
   imageCount,
+  canManageImages = true,
   addingStepType,
   newStepDraft,
   newStepError,
@@ -72,6 +73,7 @@ export default function InteractiveStepsEditor({
             onToggleEdit={() => onToggleEdit(index, step)}
             onUploadImage={onUploadImage}
             onRemoveImage={onRemoveImage}
+            canManageImages={canManageImages}
             isUploadingImage={uploadingImageIndex === index}
             canUploadImage={imageCount < 2}
           />

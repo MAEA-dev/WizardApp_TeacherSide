@@ -15,10 +15,11 @@ export default function LessonActions({
   onPublish,
   isPublishing = false,
   isPublished = false,
+  showPublish = true,
 }) {
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      {showPublish && <TouchableOpacity
         accessibilityRole="button"
         accessibilityState={{ disabled: isSaving || isSaveDisabled || isPublishing }}
         disabled={isSaving || isSaveDisabled || isPublishing}
@@ -33,7 +34,7 @@ export default function LessonActions({
         ) : (
           <Text style={styles.saveText}>Save changes</Text>
         )}
-      </TouchableOpacity>
+      </TouchableOpacity>}
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityState={{ disabled: isPublishing || isPublished }}

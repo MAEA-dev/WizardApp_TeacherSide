@@ -5,6 +5,7 @@ export {
 export {
   deleteTeacherLesson,
   publishTeacherLesson,
+  subscribeToAllLessons,
   subscribeToSubjectLessons,
   updateTeacherLesson,
 } from './teacherClasses/lessons';

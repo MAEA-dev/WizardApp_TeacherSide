@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import {
   AdminCard,
@@ -22,6 +24,7 @@ import { subscribeToSubjects } from '../../services/teacherClasses';
 
 import {
   createAdminSubject,
+  deleteAdminSubject,
   setAdminSubjectActive,
 } from '../../services/adminService';
 
@@ -57,6 +60,7 @@ export default function AdminSubjects() {
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savingSubjectId, setSavingSubjectId] = useState('');
+  const [deletingSubjectId, setDeletingSubjectId] = useState('');
 
 
   useEffect(() => {
@@ -160,6 +164,38 @@ export default function AdminSubjects() {
     }
   };
 
+  const confirmDeleteSubject = (subject) => {
+    Alert.alert(
+      'Delete subject?',
+      `Delete ${capitalizeSubjectName(subject.name)} and all of its lessons? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => removeSubject(subject),
+        },
+      ]
+    );
+  };
+
+  const removeSubject = async (subject) => {
+    if (deletingSubjectId || savingSubjectId) return;
+
+    setDeletingSubjectId(subject.id);
+    setListError('');
+
+    try {
+      await deleteAdminSubject(subject.id);
+      setSubjects((previous) => previous.filter((item) => item.id !== subject.id));
+    } catch (deleteError) {
+      console.error('Unable to delete admin subject:', deleteError);
+      setListError(deleteError.message || 'Unable to delete this subject and its lessons.');
+    } finally {
+      setDeletingSubjectId('');
+    }
+  };
+
   return (
     <AdminShell activeTab="subjects" title="Subjects">
       <ScrollView
@@ -240,7 +276,7 @@ export default function AdminSubjects() {
 
                 <Switch
                   accessibilityLabel={`${subject.name} active`}
-                  disabled={Boolean(savingSubjectId)}
+                  disabled={Boolean(savingSubjectId || deletingSubjectId)}
                   trackColor={{
                     false: '#AAA6C5',
                     true: AdminColors.primary,
@@ -251,6 +287,22 @@ export default function AdminSubjects() {
                     toggleSubject(subject.id, value)
                   }
                 />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${subject.name} and its lessons`}
+                  disabled={Boolean(savingSubjectId || deletingSubjectId)}
+                  onPress={() => confirmDeleteSubject(subject)}
+                  style={[
+                    styles.deleteButton,
+                    deletingSubjectId === subject.id && styles.disabledButton,
+                  ]}
+                >
+                  {deletingSubjectId === subject.id ? (
+                    <ActivityIndicator size="small" color="#B42318" />
+                  ) : (
+                    <Ionicons name="trash-outline" size={18} color="#B42318" />
+                  )}
+                </Pressable>
               </View>
             ))}
 
@@ -478,6 +530,14 @@ const styles = StyleSheet.create({
     color: AdminColors.muted,
     fontFamily: Inter.regular,
     fontSize: 12,
+  },
+
+  deleteButton: {
+    alignItems: 'center',
+    borderRadius: 18,
+    justifyContent: 'center',
+    height: 36,
+    width: 36,
   },
 
   emptyText: {

@@ -1,6 +1,5 @@
 import {
   collection,
-  doc,
   onSnapshot,
   query,
   where,
@@ -63,6 +62,28 @@ export const subscribeToSubjectLessons = (subjectId, onLessons, onError) =>
           status: lesson.isPublished ? 'published' : 'review',
         };
       });
+      onLessons(lessons);
+    },
+    onError
+  );
+
+export const subscribeToAllLessons = (onLessons, onError) =>
+  onSnapshot(
+    collection(db, 'lessons'),
+    (snapshot) => {
+      const lessons = snapshot.docs
+        .map((lessonDoc) => {
+          const lesson = lessonDoc.data();
+          return {
+            id: lessonDoc.id,
+            ...lesson,
+            title: lesson.displayTitle || lesson.title || 'Untitled lesson',
+            status: lesson.isPublished ? 'published' : 'review',
+          };
+        })
+        .sort((left, right) =>
+          (right.createdAt?.toMillis?.() || 0) - (left.createdAt?.toMillis?.() || 0)
+        );
       onLessons(lessons);
     },
     onError

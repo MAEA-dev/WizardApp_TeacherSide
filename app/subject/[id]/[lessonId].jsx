@@ -37,10 +37,11 @@ import { Nunito } from "../../../constants/fonts";
 
 export default function LessonScreen() {
   const [activeTab, setActiveTab] = useState("results");
-  const { id, lessonId } = useLocalSearchParams();
+  const { id, lessonId, admin } = useLocalSearchParams();
   const router = useRouter();
   const routeSubjectId = Array.isArray(id) ? id[0] : id;
   const currentLessonId = Array.isArray(lessonId) ? lessonId[0] : lessonId;
+  const isAdminContext = (Array.isArray(admin) ? admin[0] : admin) === '1';
   const [lessonDocument, setLessonDocument] = useState(null);
   const [subjectStatus, setSubjectStatus] = useState({
     subjectId: null,
@@ -344,7 +345,7 @@ export default function LessonScreen() {
     isLoading ||
     loadError ||
     !lessonDocument ||
-    subjectAvailability !== "active"
+    (!isAdminContext && subjectAvailability !== "active")
   ) {
     return (
       <View style={styles.notFound}>
@@ -374,7 +375,7 @@ export default function LessonScreen() {
     <View style={styles.screen}>
       <LessonHeader title={title} subtitle={subtitle} onBack={() => router.back()} />
 
-      <View style={styles.tabs} accessibilityRole="tablist">
+      {!isAdminContext && <View style={styles.tabs} accessibilityRole="tablist">
         <Pressable
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === "results" }}
@@ -405,13 +406,13 @@ export default function LessonScreen() {
             Edit Lesson
           </Text>
         </Pressable>
-      </View>
+      </View>}
 
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {activeTab === "results" ? (
+        {!isAdminContext && activeTab === "results" ? (
           <LessonResultsReport
             lessonId={currentLessonId}
             lessonTitle={title}
@@ -443,6 +444,7 @@ export default function LessonScreen() {
               onToggleEdit={editor.toggleStepEditing}
               onUploadImage={handleUploadStepImage}
               onRemoveImage={handleRemoveStepImage}
+              canManageImages={!isAdminContext}
               uploadingImageIndex={uploadingImageIndex}
               imageCount={editor.interactiveSteps.filter(
                 (step) => typeof step.imageUrl === "string" && step.imageUrl
@@ -478,6 +480,7 @@ export default function LessonScreen() {
               isSaving={isSaving}
               isSaveDisabled={uploadingImageIndex !== null}
               onPublish={confirmPublishLesson}
+              showPublish={!isAdminContext}
               isPublishing={isPublishing}
               isPublished={lessonDocument.isPublished === true}
             />

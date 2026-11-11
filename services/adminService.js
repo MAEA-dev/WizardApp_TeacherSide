@@ -12,6 +12,7 @@ const getAdminSettingsCall = callAdmin('getAdminSettings');
 const saveAdminQuarterSettingsCall = callAdmin('saveAdminQuarterSettings');
 const createAdminSubjectCall = callAdmin('createAdminSubject');
 const setAdminSubjectActiveCall = callAdmin('setAdminSubjectActive');
+const deleteAdminSubjectCall = callAdmin('deleteAdminSubject');
  
 export const getAdminDashboard = () => getAdminDashboardCall();
 export const getAdminSettings = () => getAdminSettingsCall();
@@ -19,3 +20,5 @@ export const saveAdminQuarterSettings = (settings) => saveAdminQuarterSettingsCa
 export const createAdminSubject = (subject) => createAdminSubjectCall(subject);
 export const setAdminSubjectActive = (subjectId, active) =>
   setAdminSubjectActiveCall({ subjectId, active });
+export const deleteAdminSubject = (subjectId) =>
+  deleteAdminSubjectCall({ subjectId });

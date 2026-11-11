@@ -30,6 +30,7 @@ export default function InteractiveStepCard({
   onRemoveImage,
   isUploadingImage,
   canUploadImage,
+  canManageImages = true,
 }) {
   const isExplanation = step.type === "say";
   const text = isExplanation ? step.text : step.question;
@@ -74,7 +75,7 @@ export default function InteractiveStepCard({
         ) : (
           <>
             <Text style={styles.body}>{text}</Text>
-            {isExplanation && step.imageUrl ? (
+            {canManageImages && isExplanation && step.imageUrl ? (
               <View style={styles.imageContainer}>
                 <Image
                   source={{ uri: step.imageUrl }}
@@ -94,7 +95,7 @@ export default function InteractiveStepCard({
                 </TouchableOpacity>
               </View>
             ) : null}
-            {isExplanation && (
+            {canManageImages && isExplanation && (
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel={step.imageUrl ? "Replace lesson photo" : "Upload lesson photo"}

@@ -201,6 +201,20 @@ export default function NewLessonModal({
             </Pressable>
           </ScrollView>
         </View>
+        {isGenerating && (
+          <View
+            accessibilityViewIsModal
+            style={styles.generatingOverlay}
+          >
+            <View style={styles.generatingCard}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+              <Text style={styles.generatingTitle}>Generating your lesson...</Text>
+              <Text style={styles.generatingHint}>
+                This may take a minute. Please keep this screen open.
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -218,6 +232,38 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     maxHeight: "92%",
     paddingBottom: 24,
+  },
+  generatingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    backgroundColor: "rgba(11, 31, 75, 0.58)",
+    justifyContent: "center",
+    padding: 24,
+    zIndex: 2,
+    elevation: 2,
+  },
+  generatingCard: {
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    gap: 12,
+    maxWidth: 340,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+    width: "100%",
+  },
+  generatingTitle: {
+    color: Colors.text,
+    fontFamily: Fredoka.semiBold,
+    fontSize: 19,
+    textAlign: "center",
+  },
+  generatingHint: {
+    color: Colors.textMuted,
+    fontFamily: Nunito.medium,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
   },
   header: {
     alignItems: "center",

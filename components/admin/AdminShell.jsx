@@ -29,6 +29,7 @@ const TABS = [
   { key: 'home', label: 'Home', icon: 'home', route: '/Admin' },
   { key: 'quarters', label: 'Quarters', icon: 'clock', route: '/Admin/quarters' },
   { key: 'subjects', label: 'Subjects', icon: 'book-open', route: '/Admin/subjects' },
+  { key: 'lessons', label: 'Lessons', icon: 'file-text', route: '/Admin/lessons' },
 ];
 
 export const AdminColors = COLORS;

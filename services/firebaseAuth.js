@@ -2,6 +2,7 @@ import { auth, db, functions } from "./firebaseConfig";
 
 import {
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
@@ -109,6 +110,22 @@ export const loginUsername = async ({
   }
 };
 
+export const sendPasswordReset = async (email) => {
+  const normalizedEmail = String(email ?? "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    const error = new Error("Email is required.");
+    error.code = "email/empty";
+    throw error;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    const error = new Error("Enter a valid email address.");
+    error.code = "email/invalid";
+    throw error;
+  }
+
+  await sendPasswordResetEmail(auth, normalizedEmail);
+};
+
 export const logoutUser = async () => {
   try {
     await signOut(auth);
@@ -140,6 +157,15 @@ export const getAuthErrorMessage = (error) => {
 
     case "password/empty":
       return "Please enter your password.";
+
+    case "email/empty":
+      return "Please enter your email address.";
+
+    case "email/invalid":
+      return "Please enter a valid email address.";
+
+    case "auth/invalid-email":
+      return "Please enter a valid email address.";
 
     case "identifier/not-found":
       return "No account found with that username or email.";
