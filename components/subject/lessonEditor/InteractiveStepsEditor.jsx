@@ -19,11 +19,6 @@ export default function InteractiveStepsEditor({
   onChangeAnswer,
   editError,
   onToggleEdit,
-  onUploadImage,
-  onRemoveImage,
-  uploadingImageIndex,
-  imageCount,
-  canManageImages = true,
   addingStepType,
   newStepDraft,
   newStepError,
@@ -40,10 +35,6 @@ export default function InteractiveStepsEditor({
       <View style={styles.header}>
         <Text style={styles.heading}>Interactive steps</Text>
         <View style={styles.headerBadges}>
-          <View style={styles.imageCountBadge}>
-            <MaterialIcons name="photo-library" size={12} color={colors.primary} />
-            <Text style={styles.badgeText}>{imageCount}/2 photos</Text>
-          </View>
           <View style={styles.badge}>
             <MaterialIcons name="auto-awesome" size={12} color={colors.primary} />
             <Text style={styles.badgeText}>
@@ -58,7 +49,6 @@ export default function InteractiveStepsEditor({
           <InteractiveStepCard
             key={`interactive-step-${index}`}
             step={step}
-            index={index}
             number={index + 1}
             isEditing={editingStepIndex === index}
             draftText={draftText}
@@ -71,11 +61,6 @@ export default function InteractiveStepsEditor({
             onChangeAnswer={onChangeAnswer}
             error={editingStepIndex === index ? editError : ""}
             onToggleEdit={() => onToggleEdit(index, step)}
-            onUploadImage={onUploadImage}
-            onRemoveImage={onRemoveImage}
-            canManageImages={canManageImages}
-            isUploadingImage={uploadingImageIndex === index}
-            canUploadImage={imageCount < 2}
           />
         ))}
       </View>
@@ -145,15 +130,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     gap: 6,
-  },
-  imageCountBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderRadius: 14,
-    backgroundColor: "#E9E6FF",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
   },
   badgeText: {
     color: colors.primary,

@@ -27,7 +27,7 @@ export default function AccountDrawer({
   email,
   onClose,
   onLogout,
-  footerLabel = "Wizzar Teacher",
+  footerLabel = "Wizard Teacher",
 }) {
   const { width } = useWindowDimensions();
   const drawerWidth = Math.min(width * 0.82, 320);

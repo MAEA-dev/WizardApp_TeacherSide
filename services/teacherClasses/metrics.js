@@ -1,7 +1,12 @@
 import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
+import { shouldIgnoreSignedOutPermissionError } from '../clientErrors';
 
 export const subscribeToSubjectCardMetrics = (subjectId, grade, onMetrics, onError) => {
+  const handleSnapshotError = (error) => {
+    if (shouldIgnoreSignedOutPermissionError(error, Boolean(auth.currentUser))) return;
+    onError?.(error);
+  };
   const gradeValue = String(grade ?? '').trim();
 
   if (!subjectId || !gradeValue) {
@@ -39,7 +44,7 @@ export const subscribeToSubjectCardMetrics = (subjectId, grade, onMetrics, onErr
       if (!Number.isFinite(metrics.studentCount)) metrics.studentCount = null;
       emitMetrics();
     },
-    onError
+    handleSnapshotError
   );
   const unsubscribeLessons = onSnapshot(
     query(collection(db, 'lessons'), where('subjectId', '==', subjectId)),
@@ -48,7 +53,7 @@ export const subscribeToSubjectCardMetrics = (subjectId, grade, onMetrics, onErr
       metrics.lessonCount = lessons.length;
       emitMetrics();
     },
-    onError
+    handleSnapshotError
   );
   const unsubscribeCompletions = onSnapshot(
     query(collection(db, 'completedLessons'), where('subjectId', '==', subjectId)),
@@ -65,7 +70,7 @@ export const subscribeToSubjectCardMetrics = (subjectId, grade, onMetrics, onErr
       });
       emitMetrics();
     },
-    onError
+    handleSnapshotError
   );
 
   return () => {
@@ -76,6 +81,10 @@ export const subscribeToSubjectCardMetrics = (subjectId, grade, onMetrics, onErr
 };
 
 export const subscribeToGradeStudentCount = (grade, onCount, onError) => {
+  const handleSnapshotError = (error) => {
+    if (shouldIgnoreSignedOutPermissionError(error, Boolean(auth.currentUser))) return;
+    onError?.(error);
+  };
   const gradeValue = String(grade ?? '').trim();
 
   if (!gradeValue) {
@@ -88,6 +97,6 @@ export const subscribeToGradeStudentCount = (grade, onCount, onError) => {
       const count = snapshot.exists() ? Number(snapshot.data().count) : null;
       onCount(Number.isFinite(count) ? count : null);
     },
-    onError
+    handleSnapshotError
   );
 };

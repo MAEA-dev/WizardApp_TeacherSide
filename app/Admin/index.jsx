@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
-import { ActivityIndicator,  ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { AdminCard, AdminColors, AdminShell, AdminText } from '../../components/admin/AdminShell';
 import { Inter } from '../../constants/fonts';
 import { getAdminDashboard } from '../../services/adminService';
+import { getClientErrorMessage } from '../../services/clientErrors';
  
 const METRICS = [
   { key: 'students', label: 'Total students' },
@@ -23,14 +24,14 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   
  
-  const load = useCallback(async () => {
+  const load = useCallback(async (refresh = false) => {
     try {
-      const data = await getAdminDashboard();
+      const data = await getAdminDashboard(refresh ? { refresh: true } : undefined);
       setDashboard(data);
       setError('');
     } catch (loadError) {
       console.error('Unable to load admin dashboard:', loadError);
-      setError(loadError.message || 'Unable to load dashboard data.');
+      setError(getClientErrorMessage(loadError, 'Unable to load dashboard data.'));
     } finally {
       setIsLoading(false);
    
@@ -40,7 +41,7 @@ export default function AdminDashboard() {
   
   useFocusEffect(
     useCallback(() => {
-      load();
+      load(true);
       const timer = setInterval(load, REFRESH_MS);
       return () => clearInterval(timer);
     }, [load])
@@ -83,7 +84,14 @@ export default function AdminDashboard() {
         contentContainerStyle={styles.content}
       >
         {isLoading && <ActivityIndicator color={AdminColors.primary} />}
-        {!!error && <AdminText accessibilityRole="alert" style={styles.error}>{error}</AdminText>}
+        {!!error && (
+          <View style={styles.errorRow}>
+            <AdminText accessibilityRole="alert" style={styles.error}>{error}</AdminText>
+            <Pressable accessibilityRole="button" onPress={() => load(true)}>
+              <AdminText style={styles.retry}>Retry</AdminText>
+            </Pressable>
+          </View>
+        )}
  
         <AdminCard style={styles.sectionCard}>
           <AdminText style={styles.cardTitle}>Needs attention</AdminText>
@@ -238,6 +246,16 @@ const styles = StyleSheet.create({
   error: {
     color: '#B42318',
     fontSize: 12,
+  },
+  errorRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  retry: {
+    color: AdminColors.primary,
+    fontFamily: Inter.semiBold,
   },
   sectionCard: {
     gap: 10,

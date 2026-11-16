@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { AdminCard, AdminColors, AdminShell, AdminText } from '../../components/admin/AdminShell';
 import { Inter } from '../../constants/fonts';
 import { getAdminSettings, saveAdminQuarterSettings } from '../../services/adminService';
+import { getClientErrorMessage } from '../../services/clientErrors';
  
 const QUARTERS = [1, 2, 3, 4];
  
@@ -35,7 +36,7 @@ export default function AdminQuarters() {
       .catch((error) => {
         console.error('Unable to load quarter settings:', error);
         if (active) {
-          setLoadError(error.message || 'Unable to load quarter settings.');
+          setLoadError(getClientErrorMessage(error, 'Unable to load quarter settings.'));
           setIsLoading(false);
         }
       });
@@ -67,7 +68,7 @@ export default function AdminQuarters() {
       setSaved(true);
     } catch (error) {
       console.error('Unable to save quarter settings:', error);
-      setSaveError(error.message || 'Unable to save quarter settings.');
+      setSaveError(getClientErrorMessage(error, 'Unable to save quarter settings.'));
     } finally {
       setIsSaving(false);
     }

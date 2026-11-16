@@ -1,5 +1,11 @@
 import { doc, onSnapshot, collection } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
+import { shouldIgnoreSignedOutPermissionError } from '../clientErrors';
+
+const handleSnapshotError = (onError) => (error) => {
+  if (shouldIgnoreSignedOutPermissionError(error, Boolean(auth.currentUser))) return;
+  onError?.(error);
+};
 
 const getSubjectsCollection = () => {
   if (!auth.currentUser?.uid) {
@@ -32,7 +38,7 @@ export const subscribeToSubjects = (onSubjects, onError) =>
         onError(error);
       }
     },
-    onError
+    handleSnapshotError(onError)
   );
 
 export const subscribeToSubject = (subjectId, onSubject, onError) =>
@@ -45,5 +51,5 @@ export const subscribeToSubject = (subjectId, onSubject, onError) =>
         onError(error);
       }
     },
-    onError
+    handleSnapshotError(onError)
   );

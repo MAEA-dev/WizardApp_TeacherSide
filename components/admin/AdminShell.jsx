@@ -16,6 +16,7 @@ import { ADMIN_EMAIL } from '../../services/firebaseAuth';
 import { auth, db } from '../../services/firebaseConfig';
 import { Inter } from '../../constants/fonts';
 import AccountDrawer from '../home/AccountDrawer';
+import { getClientErrorMessage } from '../../services/clientErrors';
 
 const COLORS = {
   background: '#F4F1FF',
@@ -49,39 +50,58 @@ export function AdminText({ children, style, ...props }) {
 export function AdminShell({ activeTab, title, children }) {
   const router = useRouter();
   const [access, setAccess] = useState('loading');
+  const [accessRetry, setAccessRetry] = useState(0);
+  const [accessError, setAccessError] = useState('');
   const [accountMenuVisible, setAccountMenuVisible] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [accountEmail, setAccountEmail] = useState(ADMIN_EMAIL);
 
   useEffect(() => {
     let active = true;
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        if (active) setAccess('denied');
-        return;
-      }
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (user) => {
+        if (active) setAccessError('');
+        if (!user) {
+          if (active) setAccess('denied');
+          return;
+        }
 
-      try {
-        setAccountEmail(user.email || ADMIN_EMAIL);
-        const userSnapshot = await getDoc(doc(db, 'users', user.uid));
+        try {
+          setAccountEmail(user.email || ADMIN_EMAIL);
+          const userSnapshot = await getDoc(doc(db, 'users', user.uid));
+          if (!active) return;
+
+          const isAdmin =
+            user.email?.toLowerCase() === ADMIN_EMAIL &&
+            userSnapshot.exists() &&
+            userSnapshot.data().role === 'admin';
+          setAccess(isAdmin ? 'allowed' : 'denied');
+        } catch (error) {
+          const message = getClientErrorMessage(
+            error,
+            'Unable to verify admin access. Check your connection and try again.'
+          );
+          console.warn('Unable to verify admin access:', message);
+          if (active) {
+            setAccessError(message);
+            setAccess('error');
+          }
+        }
+      },
+      (error) => {
+        console.error('Unable to restore admin sign-in session:', error);
         if (!active) return;
-
-        const isAdmin =
-          user.email?.toLowerCase() === ADMIN_EMAIL &&
-          userSnapshot.exists() &&
-          userSnapshot.data().role === 'admin';
-        setAccess(isAdmin ? 'allowed' : 'denied');
-      } catch (error) {
-        console.error('Unable to verify admin access:', error);
-        if (active) setAccess('error');
+        setAccessError(getClientErrorMessage(error, 'Unable to verify admin access.'));
+        setAccess('error');
       }
-    });
+    );
 
     return () => {
       active = false;
       unsubscribe();
     };
-  }, []);
+  }, [accessRetry]);
 
   const leaveAdmin = async (action) => {
     setAccountMenuVisible(false);
@@ -110,10 +130,25 @@ export function AdminShell({ activeTab, title, children }) {
       <View style={styles.accessState}>
         <Text style={styles.accessText}>
           {access === 'error'
-            ? 'Unable to verify admin access. Check your connection and try again.'
+            ? accessError || 'Unable to verify admin access. Check your connection and try again.'
             : 'This account does not have admin access.'}
         </Text>
-        <Pressable onPress={() => router.replace('/login')} style={styles.signInButton}>
+        {access === 'error' && (
+          <Pressable
+            onPress={() => {
+              setAccess('loading');
+              setAccessRetry((attempt) => attempt + 1);
+            }}
+            style={styles.signInButton}
+          >
+            <Text style={styles.signInText}>Try again</Text>
+          </Pressable>
+        )}
+        <Pressable
+          onPress={() => leaveAdmin('sign out')}
+          disabled={isSigningOut}
+          style={styles.signInButton}
+        >
           <Text style={styles.signInText}>Go to sign in</Text>
         </Pressable>
       </View>
@@ -180,7 +215,7 @@ export function AdminShell({ activeTab, title, children }) {
         visible={accountMenuVisible}
         name="Admin"
         email={accountEmail}
-        footerLabel="Wizzar Admin"
+        footerLabel="Wizard Admin"
         onClose={() => setAccountMenuVisible(false)}
         onLogout={() => leaveAdmin('log out')}
       />
@@ -195,13 +230,14 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     flexDirection: 'row',
     height: 88,
     justifyContent: 'flex-start',
     overflow: 'hidden',
     paddingHorizontal: 18,
+    marginHorizontal: 2
   },
   headerDecorationLarge: {
     backgroundColor: 'rgba(255,255,255,0.045)',

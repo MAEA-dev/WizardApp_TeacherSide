@@ -76,6 +76,7 @@ export default function LessonsTab({
             status={item.status}
             quarter={item.quarter}
             createdAt={item.createdAt || item.publishedAt}
+            uploaderName={item.uploaderName}
             onDelete={() => {
               setDeleteError("");
               setLessonToDelete({ id: item.id, title: item.title });

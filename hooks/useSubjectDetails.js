@@ -6,6 +6,7 @@ import {
   subscribeToSubjectLessons,
 } from '../services/teacherClasses';
 import { buildSubjectStudents } from '../utils/subjectStudents';
+import { getClientErrorMessage } from '../services/clientErrors';
 
 export default function useSubjectDetails(subjectId) {
   const [subject, setSubject] = useState(null);
@@ -38,7 +39,7 @@ export default function useSubjectDetails(subjectId) {
       },
       (loadError) => {
         console.error('Unable to load subject:', loadError);
-        setError(loadError.message || 'Unable to load this subject.');
+        setError(getClientErrorMessage(loadError, 'Unable to load this subject.'));
         setIsLoading(false);
       }
     );
@@ -58,7 +59,7 @@ export default function useSubjectDetails(subjectId) {
       },
       (loadError) => {
         console.error('Unable to load subject lessons:', loadError);
-        setLessonsError(loadError.message || 'Unable to load lessons.');
+        setLessonsError(getClientErrorMessage(loadError, 'Unable to load lessons.'));
         setIsLoadingLessons(false);
       }
     );
@@ -79,7 +80,7 @@ export default function useSubjectDetails(subjectId) {
       (loadError) => {
         console.error('Unable to load grade student count:', loadError);
         setGradeStudentCount(null);
-        setGradeCountError(loadError.message || 'Unable to load grade student count.');
+        setGradeCountError(getClientErrorMessage(loadError, 'Unable to load grade student count.'));
       }
     );
   }, [subject?.grade]);
@@ -99,7 +100,7 @@ export default function useSubjectDetails(subjectId) {
       },
       (loadError) => {
         console.error('Unable to load completed lessons:', loadError);
-        setCompletionsError(loadError.message || 'Unable to load student performance.');
+        setCompletionsError(getClientErrorMessage(loadError, 'Unable to load student performance.'));
         setIsLoadingCompletions(false);
       }
     );

@@ -9,16 +9,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { doc, onSnapshot } from "firebase/firestore";
-import {
-  deleteObject,
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from "firebase/storage";
-import { auth, db, storage } from "../../../services/firebaseConfig";
+import { db } from "../../../services/firebaseConfig";
 import {
   publishTeacherLesson,
   subscribeToLessonCompletions,
@@ -52,7 +45,6 @@ export default function LessonScreen() {
   const [resultsError, setResultsError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [uploadingImageIndex, setUploadingImageIndex] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
 
@@ -145,7 +137,7 @@ export default function LessonScreen() {
   const editor = useLessonEditor(aiLesson, currentLessonId);
 
   const handleSaveLesson = async () => {
-    if (isSaving || uploadingImageIndex !== null || !lessonDocument) return;
+    if (isSaving || !lessonDocument) return;
 
     const changes = editor.getChangesToSave();
     if (!changes) return;
@@ -167,143 +159,6 @@ export default function LessonScreen() {
       );
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const saveStepImage = async (stepIndex, imageFields) => {
-    const updatedSteps = editor.interactiveSteps.map((step, index) => {
-      if (index !== stepIndex) return step;
-      const updatedStep = { ...step };
-      delete updatedStep.imageUrl;
-      delete updatedStep.imagePath;
-      return { ...updatedStep, ...imageFields };
-    });
-    await updateTeacherLesson(currentLessonId, {
-      interactiveSteps: updatedSteps,
-    });
-  };
-
-  const handleUploadStepImage = async (stepIndex, step) => {
-    const user = auth.currentUser;
-    if (!user) {
-      Alert.alert("Sign in required", "Sign in again before uploading a photo.");
-      return;
-    }
-
-    const currentImageCount = editor.interactiveSteps.filter(
-      (item) => typeof item.imageUrl === "string" && item.imageUrl
-    ).length;
-    if (!step.imageUrl && currentImageCount >= 2) {
-      Alert.alert(
-        "Image limit reached",
-        "A lesson can have photos on up to two explanation steps."
-      );
-      return;
-    }
-
-    let selection;
-    try {
-      selection = await DocumentPicker.getDocumentAsync({
-        type: ["image/jpeg", "image/png", "image/webp"],
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-    } catch (error) {
-      console.error("Unable to select lesson photo:", error);
-      Alert.alert(
-        "Unable to select photo",
-        error instanceof Error ? error.message : "Please try again."
-      );
-      return;
-    }
-    if (selection.canceled || !selection.assets?.[0]) return;
-
-    const asset = selection.assets[0];
-    const selectedMimeType =
-      asset.mimeType === "image/jpg" ? "image/jpeg" : asset.mimeType;
-    const inferredType = {
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      png: "image/png",
-      webp: "image/webp",
-    }[asset.name?.split(".").pop()?.toLowerCase()];
-    const contentType = selectedMimeType || inferredType;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
-      Alert.alert("Unsupported photo", "Choose a JPG, PNG, or WebP image.");
-      return;
-    }
-    if (asset.size > 8 * 1024 * 1024) {
-      Alert.alert("Photo is too large", "Choose an image smaller than 8 MB.");
-      return;
-    }
-
-    setUploadingImageIndex(stepIndex);
-    let uploadedImageRef = null;
-    try {
-      const response = await fetch(asset.uri);
-      if (!response.ok) {
-        throw new Error("The selected photo could not be read.");
-      }
-      const imageBlob = await response.blob();
-      if (!imageBlob.size || imageBlob.size > 8 * 1024 * 1024) {
-        throw new Error("Choose a non-empty image smaller than 8 MB.");
-      }
-
-      const extension = contentType.split("/")[1].replace("jpeg", "jpg");
-      const imagePath = `lessonImages/${user.uid}/${currentLessonId}/step-${
-        stepIndex + 1
-      }-${Date.now()}.${extension}`;
-      uploadedImageRef = ref(storage, imagePath);
-      await uploadBytes(uploadedImageRef, imageBlob, { contentType });
-      const imageUrl = await getDownloadURL(uploadedImageRef);
-      await saveStepImage(stepIndex, { imageUrl, imagePath });
-
-      const ownedImagePrefix = `lessonImages/${user.uid}/${currentLessonId}/`;
-      if (
-        step.imagePath?.startsWith(ownedImagePrefix) &&
-        step.imagePath !== imagePath
-      ) {
-        try {
-          await deleteObject(ref(storage, step.imagePath));
-        } catch (error) {
-          console.warn("Previous lesson photo cleanup failed:", error);
-        }
-      }
-    } catch (error) {
-      if (uploadedImageRef) {
-        try {
-          await deleteObject(uploadedImageRef);
-        } catch (cleanupError) {
-          console.warn("Lesson photo cleanup failed:", cleanupError);
-        }
-      }
-      console.error("Unable to upload lesson photo:", error);
-      Alert.alert(
-        "Photo upload failed",
-        error instanceof Error ? error.message : "Please try again."
-      );
-    } finally {
-      setUploadingImageIndex(null);
-    }
-  };
-
-  const handleRemoveStepImage = async (stepIndex, step) => {
-    try {
-      await saveStepImage(stepIndex, {});
-      const ownedImagePrefix = `lessonImages/${auth.currentUser?.uid}/${currentLessonId}/`;
-      if (step.imagePath?.startsWith(ownedImagePrefix)) {
-        try {
-          await deleteObject(ref(storage, step.imagePath));
-        } catch (error) {
-          console.warn("Removed lesson photo cleanup failed:", error);
-        }
-      }
-    } catch (error) {
-      console.error("Unable to remove lesson photo:", error);
-      Alert.alert(
-        "Unable to remove photo",
-        error instanceof Error ? error.message : "Please try again."
-      );
     }
   };
 
@@ -442,13 +297,6 @@ export default function LessonScreen() {
               onChangeAnswer={editor.setDraftAnswer}
               editError={editor.editStepError}
               onToggleEdit={editor.toggleStepEditing}
-              onUploadImage={handleUploadStepImage}
-              onRemoveImage={handleRemoveStepImage}
-              canManageImages={!isAdminContext}
-              uploadingImageIndex={uploadingImageIndex}
-              imageCount={editor.interactiveSteps.filter(
-                (step) => typeof step.imageUrl === "string" && step.imageUrl
-              ).length}
               addingStepType={editor.addingStepType}
               newStepDraft={editor.newStepDraft}
               newStepError={editor.newStepError}
@@ -478,7 +326,6 @@ export default function LessonScreen() {
             <LessonActions
               onSave={handleSaveLesson}
               isSaving={isSaving}
-              isSaveDisabled={uploadingImageIndex !== null}
               onPublish={confirmPublishLesson}
               showPublish={!isAdminContext}
               isPublishing={isPublishing}

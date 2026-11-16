@@ -23,6 +23,7 @@ import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka/600SemiBold';
 import { Fredoka_700Bold } from '@expo-google-fonts/fredoka/700Bold';
 import { ADMIN_EMAIL } from '../services/firebaseAuth';
 import { auth } from '../services/firebaseConfig';
+import AppErrorBoundary from '../components/AppErrorBoundary';
 
 export default function RootLayout() {
  const [user, setUser] = useState(null);
@@ -46,10 +47,18 @@ export default function RootLayout() {
 });
 
  useEffect(() => {
-   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-     setUser(currentUser);
-     setInitializing(false);
-   });
+   const unsubscribe = onAuthStateChanged(
+     auth,
+     (currentUser) => {
+       setUser(currentUser);
+       setInitializing(false);
+     },
+     (error) => {
+       console.error('Unable to restore sign-in session:', error);
+       setUser(null);
+       setInitializing(false);
+     }
+   );
 
    return unsubscribe;
  }, []);
@@ -89,14 +98,14 @@ export default function RootLayout() {
 
 
   return (
-    <SafeAreaProvider>
-      <KeyboardProvider>
-        <SafeAreaView style={{flex: 1}} edges={['top', 'left', 'right', 'bottom']}>
-          <Stack screenOptions={{headerShown: false}}>
-            
-          </Stack>
+    <AppErrorBoundary>
+      <SafeAreaProvider>
+        <KeyboardProvider>
+          <SafeAreaView style={{flex: 1}} edges={['top', 'left', 'right', 'bottom']}>
+            <Stack screenOptions={{headerShown: false}} />
           </SafeAreaView>
         </KeyboardProvider>
     </SafeAreaProvider>
+    </AppErrorBoundary>
   );
 }

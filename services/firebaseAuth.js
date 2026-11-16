@@ -1,4 +1,5 @@
 import { auth, db, functions } from "./firebaseConfig";
+import { isConnectionError } from "./clientErrors";
 
 import {
   EmailAuthProvider,
@@ -173,6 +174,10 @@ export const getCurrentUser = () => {
 };
 
 export const getAuthErrorMessage = (error) => {
+  if (isConnectionError(error)) {
+    return "Connection is unstable or unavailable. Check your internet connection and try again.";
+  }
+
   switch (error.code) {
     case "identifier/empty":
       return "Please enter your username or email.";

@@ -38,6 +38,7 @@ export default function Login() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
@@ -185,12 +186,25 @@ export default function Login() {
                 placeholderTextColor={Colors.neutral}
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="done"
                 onSubmitEditing={handleLogin}
               />
+
+              <TouchableOpacity
+                onPress={() => setShowPassword((visible) => !visible)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                hitSlop={8}
+              >
+                <Feather
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={19}
+                  color={Colors.neutral}
+                />
+              </TouchableOpacity>
             </View>
 
             {!!error && <Text style={styles.errorText}>{error}</Text>}

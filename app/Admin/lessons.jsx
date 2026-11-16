@@ -18,6 +18,7 @@ import {
 } from '../../components/admin/AdminShell';
 import { Inter } from '../../constants/fonts';
 import { deleteTeacherLesson, subscribeToAllLessons } from '../../services/teacherClasses';
+import { getClientErrorMessage } from '../../services/clientErrors';
 
 const formatDate = (date) => {
   const value = date?.toDate?.();
@@ -40,7 +41,7 @@ export default function AdminLessons() {
     },
     (loadError) => {
       console.error('Unable to load admin lessons:', loadError);
-      setError(loadError.message || 'Unable to load lessons.');
+      setError(getClientErrorMessage(loadError, 'Unable to load lessons.'));
       setIsLoading(false);
     }
   ), []);
@@ -63,7 +64,7 @@ export default function AdminLessons() {
       setLessons((previous) => previous.filter((item) => item.id !== lesson.id));
     } catch (deleteError) {
       console.error('Unable to delete admin lesson:', deleteError);
-      setError(deleteError.message || 'Unable to delete this lesson.');
+      setError(getClientErrorMessage(deleteError, 'Unable to delete this lesson.'));
     } finally {
       setDeletingLessonId('');
     }

@@ -26,6 +26,7 @@ export default function LessonCard({
     status,
     quarter,
     createdAt,
+    uploaderName,
     onDelete,
     isDeleting = false,
 }){
@@ -80,6 +81,9 @@ export default function LessonCard({
                         )}
                     </View>
                 </View>
+                <Text style={styles.uploader} numberOfLines={1}>
+                    Uploaded by {uploaderName || 'Unknown teacher'}
+                </Text>
 
                 </View>
             
@@ -161,6 +165,13 @@ const styles = StyleSheet.create({
     subtitle: {
         fontFamily: Nunito.medium,
         marginLeft: 5
+    },
+    uploader: {
+        color: Colors.neutral,
+        fontFamily: Nunito.medium,
+        fontSize: 11,
+        marginLeft: 3,
+        marginTop: 3,
     },
     tagRow: {
         flexDirection: "row",

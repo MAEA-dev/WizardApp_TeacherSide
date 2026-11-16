@@ -20,6 +20,7 @@ import {
 } from '../../components/admin/AdminShell';
 
 import { Inter } from '../../constants/fonts';
+import { getClientErrorMessage } from '../../services/clientErrors';
 import { subscribeToSubjects } from '../../services/teacherClasses';
 
 import {
@@ -76,9 +77,7 @@ export default function AdminSubjects() {
           subscriptionError
         );
 
-        setListError(
-          subscriptionError.message || 'Unable to load subjects.'
-        );
+        setListError(getClientErrorMessage(subscriptionError, 'Unable to load subjects.'));
 
         setIsLoading(false);
       }
@@ -118,9 +117,7 @@ export default function AdminSubjects() {
         toggleError
       );
 
-      setListError(
-        toggleError.message || 'Unable to update subject status.'
-      );
+      setListError(getClientErrorMessage(toggleError, 'Unable to update subject status.'));
     } finally {
       setSavingSubjectId('');
     }
@@ -155,10 +152,7 @@ export default function AdminSubjects() {
         createError
       );
 
-      setError(
-        createError.message ||
-          'Unable to create subject. Please try again.'
-      );
+      setError(getClientErrorMessage(createError, 'Unable to create subject. Please try again.'));
     } finally {
       setIsSaving(false);
     }
@@ -190,7 +184,7 @@ export default function AdminSubjects() {
       setSubjects((previous) => previous.filter((item) => item.id !== subject.id));
     } catch (deleteError) {
       console.error('Unable to delete admin subject:', deleteError);
-      setListError(deleteError.message || 'Unable to delete this subject and its lessons.');
+      setListError(getClientErrorMessage(deleteError, 'Unable to delete this subject and its lessons.'));
     } finally {
       setDeletingSubjectId('');
     }

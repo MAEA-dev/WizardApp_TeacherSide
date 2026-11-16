@@ -1,15 +1,48 @@
 import {
   collection,
+  doc,
+  getDoc,
   onSnapshot,
   query,
   where,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../firebaseConfig';
+import { shouldIgnoreSignedOutPermissionError } from '../clientErrors';
 
 const deleteTeacherLessonCall = httpsCallable(functions, 'deleteTeacherLesson');
 const publishTeacherLessonCall = httpsCallable(functions, 'publishTeacherLesson');
 const updateTeacherLessonCall = httpsCallable(functions, 'updateTeacherLesson');
+
+const handleSnapshotError = (onError) => (error) => {
+  if (shouldIgnoreSignedOutPermissionError(error, Boolean(auth.currentUser))) return;
+  onError?.(error);
+};
+
+const getUploaderNames = async (lessons) => {
+  const uploaderIds = [...new Set(lessons.map((lesson) => lesson.createdBy).filter(Boolean))];
+  const entries = await Promise.all(uploaderIds.map(async (uid) => {
+    try {
+      const snapshot = await getDoc(doc(db, 'users', uid));
+      if (!snapshot.exists()) return [uid, 'Unknown teacher'];
+
+      const userData = snapshot.data();
+      const profile = userData.profile || {};
+      const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim()
+        || userData.displayName
+        || userData.username
+        || 'Unknown teacher';
+      return [uid, name];
+    } catch (error) {
+      if (!shouldIgnoreSignedOutPermissionError(error, Boolean(auth.currentUser))) {
+        console.warn('Unable to load lesson uploader:', error);
+      }
+      return [uid, 'Unknown teacher'];
+    }
+  }));
+
+  return new Map(entries);
+};
 
 export const updateTeacherLesson = async (lessonId, changes) => {
   if (!lessonId) {
@@ -52,19 +85,21 @@ export const publishTeacherLesson = async (lessonId) => {
 export const subscribeToSubjectLessons = (subjectId, onLessons, onError) =>
   onSnapshot(
     query(collection(db, 'lessons'), where('subjectId', '==', subjectId)),
-    (snapshot) => {
-      const lessons = snapshot.docs.map((lessonDoc) => {
-        const lesson = lessonDoc.data();
-        return {
-          id: lessonDoc.id,
-          ...lesson,
-          title: lesson.displayTitle || lesson.title || 'Untitled lesson',
-          status: lesson.isPublished ? 'published' : 'review',
-        };
-      });
+    async (snapshot) => {
+      const lessonData = snapshot.docs.map((lessonDoc) => ({
+        id: lessonDoc.id,
+        ...lessonDoc.data(),
+      }));
+      const uploaderNames = await getUploaderNames(lessonData);
+      const lessons = lessonData.map((lesson) => ({
+        ...lesson,
+        uploaderName: uploaderNames.get(lesson.createdBy) || 'Unknown teacher',
+        title: lesson.displayTitle || lesson.title || 'Untitled lesson',
+        status: lesson.isPublished ? 'published' : 'review',
+      }));
       onLessons(lessons);
     },
-    onError
+    handleSnapshotError(onError)
   );
 
 export const subscribeToAllLessons = (onLessons, onError) =>
@@ -86,7 +121,7 @@ export const subscribeToAllLessons = (onLessons, onError) =>
         );
       onLessons(lessons);
     },
-    onError
+    handleSnapshotError(onError)
   );
 
 export const deleteTeacherLesson = async (lessonId) => {

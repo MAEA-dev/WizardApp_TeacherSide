@@ -6,7 +6,8 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
+import { shouldIgnoreSignedOutPermissionError } from '../clientErrors';
 
 const subscribeToCompletedLessonQuery = (completedLessonsQuery, onCompletions, onError) => {
   let isActive = true;
@@ -60,10 +61,17 @@ const subscribeToCompletedLessonQuery = (completedLessonsQuery, onCompletions, o
           })
         );
       } catch (error) {
-        if (isActive && currentRevision === revision) onError(error);
+        if (
+          isActive &&
+          currentRevision === revision &&
+          !shouldIgnoreSignedOutPermissionError(error, Boolean(auth.currentUser))
+        ) onError?.(error);
       }
     },
-    onError
+    (error) => {
+      if (shouldIgnoreSignedOutPermissionError(error, Boolean(auth.currentUser))) return;
+      onError?.(error);
+    }
   );
 
   return () => {
