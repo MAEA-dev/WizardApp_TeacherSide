@@ -55,6 +55,17 @@ export default function Register() {
 
     setError('');
 
+    const namePattern = /^[\p{L}\p{M}]+(?:[ '’-][\p{L}\p{M}]+)*$/u;
+    if (
+      (firstName.trim() && !namePattern.test(firstName.trim())) ||
+      (lastName.trim() && !namePattern.test(lastName.trim()))
+    ) {
+      setError(
+        'First and last names may contain letters, spaces, hyphens, and apostrophes only.'
+      );
+      return;
+    }
+
     if (
       !firstName.trim() ||
       !lastName.trim() ||
