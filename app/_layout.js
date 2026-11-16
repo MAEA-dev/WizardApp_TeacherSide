@@ -78,7 +78,6 @@ export default function RootLayout() {
      isAuthRoute ||
      !currentGroup ||
      currentGroup === 'index' ||
-     (isAdmin && currentGroup !== 'Admin') ||
      (!isAdmin && currentGroup === 'Admin')
    ) {
      router.replace(destination);

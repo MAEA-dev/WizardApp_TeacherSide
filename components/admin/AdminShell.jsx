@@ -17,6 +17,11 @@ import { auth, db } from '../../services/firebaseConfig';
 import { Inter } from '../../constants/fonts';
 import AccountDrawer from '../home/AccountDrawer';
 import { getClientErrorMessage } from '../../services/clientErrors';
+import {
+  clearAdminAccessVerification,
+  isAdminAccessVerified,
+  markAdminAccessVerified,
+} from '../../services/adminAccessCache';
 
 const COLORS = {
   background: '#F4F1FF',
@@ -49,7 +54,9 @@ export function AdminText({ children, style, ...props }) {
 
 export function AdminShell({ activeTab, title, children }) {
   const router = useRouter();
-  const [access, setAccess] = useState('loading');
+  const [access, setAccess] = useState(() =>
+    isAdminAccessVerified(auth.currentUser?.uid) ? 'allowed' : 'loading'
+  );
   const [accessRetry, setAccessRetry] = useState(0);
   const [accessError, setAccessError] = useState('');
   const [accountMenuVisible, setAccountMenuVisible] = useState(false);
@@ -63,12 +70,19 @@ export function AdminShell({ activeTab, title, children }) {
       async (user) => {
         if (active) setAccessError('');
         if (!user) {
+          clearAdminAccessVerification();
           if (active) setAccess('denied');
           return;
         }
 
+        if (active) setAccountEmail(user.email || ADMIN_EMAIL);
+        if (isAdminAccessVerified(user.uid)) {
+          if (active) setAccess('allowed');
+          return;
+        }
+
         try {
-          setAccountEmail(user.email || ADMIN_EMAIL);
+          if (active) setAccess('loading');
           const userSnapshot = await getDoc(doc(db, 'users', user.uid));
           if (!active) return;
 
@@ -76,6 +90,7 @@ export function AdminShell({ activeTab, title, children }) {
             user.email?.toLowerCase() === ADMIN_EMAIL &&
             userSnapshot.exists() &&
             userSnapshot.data().role === 'admin';
+          if (isAdmin) markAdminAccessVerified(user.uid);
           setAccess(isAdmin ? 'allowed' : 'denied');
         } catch (error) {
           const message = getClientErrorMessage(
@@ -108,6 +123,7 @@ export function AdminShell({ activeTab, title, children }) {
     setIsSigningOut(true);
     try {
       await firebaseSignOut(auth);
+      clearAdminAccessVerification();
       router.replace('/login');
     } catch (error) {
       console.error(`Unable to ${action.toLowerCase()} from the admin console:`, error);

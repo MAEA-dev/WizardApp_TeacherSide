@@ -1,5 +1,9 @@
 import { auth, db, functions } from "./firebaseConfig";
 import { isConnectionError } from "./clientErrors";
+import {
+  clearAdminAccessVerification,
+  markAdminAccessVerified,
+} from "./adminAccessCache";
 
 import {
   EmailAuthProvider,
@@ -40,6 +44,8 @@ export const loginUsername = async ({
   expectedRole = "teacher",
 }) => {
   try {
+    clearAdminAccessVerification();
+
     const identifier = String(username ?? email ?? "")
       .trim()
       .toLowerCase();
@@ -104,6 +110,10 @@ export const loginUsername = async ({
 
       error.code = "user/role-mismatch";
       throw error;
+    }
+
+    if (role === "admin") {
+      markAdminAccessVerified(user.uid);
     }
 
     return role;

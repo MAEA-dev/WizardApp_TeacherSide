@@ -10,8 +10,10 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "../../../services/firebaseConfig";
+import { auth, db } from "../../../services/firebaseConfig";
+import { ADMIN_EMAIL } from "../../../services/firebaseAuth";
 import {
   publishTeacherLesson,
   subscribeToLessonCompletions,
@@ -30,11 +32,11 @@ import { Nunito } from "../../../constants/fonts";
 
 export default function LessonScreen() {
   const [activeTab, setActiveTab] = useState("results");
-  const { id, lessonId, admin } = useLocalSearchParams();
+  const { id, lessonId } = useLocalSearchParams();
   const router = useRouter();
   const routeSubjectId = Array.isArray(id) ? id[0] : id;
   const currentLessonId = Array.isArray(lessonId) ? lessonId[0] : lessonId;
-  const isAdminContext = (Array.isArray(admin) ? admin[0] : admin) === '1';
+  const [userRole, setUserRole] = useState('loading');
   const [lessonDocument, setLessonDocument] = useState(null);
   const [subjectStatus, setSubjectStatus] = useState({
     subjectId: null,
@@ -47,6 +49,8 @@ export default function LessonScreen() {
   const [loadError, setLoadError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const isAdminContext = userRole === 'admin';
+  const canViewResults = userRole === 'teacher';
 
   const subjectId = routeSubjectId || lessonDocument?.subjectId;
   const subjectAvailability = !subjectId
@@ -56,6 +60,33 @@ export default function LessonScreen() {
     : subjectStatus.subjectId === subjectId
       ? subjectStatus.status
       : "loading";
+
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (user) => {
+        if (!active) return;
+        if (!user) {
+          setUserRole('unauthorized');
+          return;
+        }
+
+        setUserRole(
+          user.email?.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'teacher'
+        );
+      },
+      (error) => {
+        console.error('Unable to restore lesson access session:', error);
+        if (active) setUserRole('error');
+      }
+    );
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!subjectId) return undefined;
@@ -104,7 +135,12 @@ export default function LessonScreen() {
   }, [currentLessonId]);
 
   useEffect(() => {
-    if (!currentLessonId) return undefined;
+    if (!currentLessonId || !canViewResults) {
+      setResults([]);
+      setIsLoadingResults(false);
+      setResultsError('');
+      return undefined;
+    }
 
     setResults([]);
     setIsLoadingResults(true);
@@ -131,7 +167,7 @@ export default function LessonScreen() {
         setIsLoadingResults(false);
       }
     );
-  }, [currentLessonId]);
+  }, [canViewResults, currentLessonId]);
 
   const aiLesson = lessonDocument?.aiLesson;
   const editor = useLessonEditor(aiLesson, currentLessonId);
@@ -197,6 +233,7 @@ export default function LessonScreen() {
   };
 
   if (
+    userRole === 'loading' ||
     isLoading ||
     loadError ||
     !lessonDocument ||
@@ -204,7 +241,7 @@ export default function LessonScreen() {
   ) {
     return (
       <View style={styles.notFound}>
-        {isLoading || (!loadError && subjectAvailability === "loading") ? (
+        {userRole === 'loading' || isLoading || (!loadError && subjectAvailability === "loading") ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
           <Text style={styles.notFoundText}>
@@ -223,6 +260,21 @@ export default function LessonScreen() {
     );
   }
 
+  if (userRole !== 'teacher' && userRole !== 'admin') {
+    return (
+      <View style={styles.notFound}>
+        <Text style={styles.notFoundText}>
+          {userRole === 'error'
+            ? 'Unable to verify access to this lesson.'
+            : 'This account does not have access to this lesson.'}
+        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backLink}>
+          <Text style={styles.backLinkText}>Go back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   const title = lessonDocument.displayTitle ?? lessonDocument.title;
   const subtitle = `${lessonDocument.subjectName ?? 'Subject'} · ${lessonDocument.gradeLevel ?? ''}`;
 
@@ -230,7 +282,7 @@ export default function LessonScreen() {
     <View style={styles.screen}>
       <LessonHeader title={title} subtitle={subtitle} onBack={() => router.back()} />
 
-      {!isAdminContext && <View style={styles.tabs} accessibilityRole="tablist">
+      {canViewResults && <View style={styles.tabs} accessibilityRole="tablist">
         <Pressable
           accessibilityRole="tab"
           accessibilityState={{ selected: activeTab === "results" }}
@@ -267,7 +319,7 @@ export default function LessonScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {!isAdminContext && activeTab === "results" ? (
+        {canViewResults && activeTab === "results" ? (
           <LessonResultsReport
             lessonId={currentLessonId}
             lessonTitle={title}
