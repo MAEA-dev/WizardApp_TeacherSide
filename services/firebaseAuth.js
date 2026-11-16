@@ -1,10 +1,13 @@
 import { auth, db, functions } from "./firebaseConfig";
 
 import {
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
 } from "firebase/auth";
 
 import {
@@ -124,6 +127,25 @@ export const sendPasswordReset = async (email) => {
   }
 
   await sendPasswordResetEmail(auth, normalizedEmail);
+};
+
+export const changeCurrentUserPassword = async ({ oldPassword, newPassword }) => {
+  const user = auth.currentUser;
+  if (!user) {
+    const error = new Error("No signed-in user was found.");
+    error.code = "auth/current-user-missing";
+    throw error;
+  }
+
+  if (!user.email) {
+    const error = new Error("This account does not have an email sign-in.");
+    error.code = "auth/email-password-account-required";
+    throw error;
+  }
+
+  const credential = EmailAuthProvider.credential(user.email, oldPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
 };
 
 export const logoutUser = async () => {

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors , Opacity} from '../../constants/colors';
 import { TextShadows } from '../../constants/shadows';
 import { Fredoka } from '../../constants/fonts';
+import { logoutUser } from '../../services/firebaseAuth';
 import AccountDrawer from './AccountDrawer';
 
 
@@ -17,6 +18,16 @@ export default function HomeHeader({
 
   const firstLetter = name?.trim().charAt(0).toUpperCase() || '';
   const greeting = String(gender).trim().toLowerCase() === 'female' ? "Ma'am" : 'Sir';
+
+  const handleLogout = async () => {
+    const didLogout = await logoutUser();
+    if (didLogout) {
+      router.replace("/login");
+      return;
+    }
+
+    Alert.alert("Log out failed", "Please try again.");
+  };
 
   return (
       <View style={styles.container}>
@@ -41,8 +52,7 @@ export default function HomeHeader({
         name={name}
         email={email}
         onClose={() => setAccountMenuVisible(false)}
-        onSwitchUser={() => router.replace("/login")}
-        onLogout={() => router.replace("/login")}
+        onLogout={handleLogout}
       />
     </View>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import DetailsHeader from './DetailsHeader';
 import LessonProgress from './LessonProgress';
@@ -8,49 +8,26 @@ import { Colors } from '../../../../constants/colors';
 import { Nunito } from '../../../../constants/fonts';
 import { formatDurationSeconds } from '../../../../utils/formatDuration';
 import {
-  filterCompletionsByQuarter,
   getAnswerCounts,
   getAverageDurationSeconds,
   getCompletedLessonCount,
-  getLessonIdsByQuarter,
   getMostMissedQuestions,
-  getQuarter,
   getStudentAverageScores,
 } from './overviewMetrics';
 
 export default function OverviewTab({
   lessons = [],
   completions = [],
+  quarterCompletions = [],
+  quarters = [],
+  selectedQuarter = 'all',
+  onQuarterChange,
   gradeStudentCount,
   gradeCountError,
   isLoadingCompletions,
   completionsError,
 }) {
-  const [selectedQuarter, setSelectedQuarter] = useState('all');
   const [isQuarterMenuVisible, setIsQuarterMenuVisible] = useState(false);
-
-  const quarters = useMemo(
-    () => [...new Set(lessons.map(getQuarter).filter(Boolean))].sort((a, b) => a - b),
-    [lessons]
-  );
-
-  useEffect(() => {
-    setSelectedQuarter((current) =>
-      current === 'all' && quarters.includes(1)
-        ? 1
-        : current !== 'all' && !quarters.includes(current)
-          ? 'all'
-          : current
-    );
-  }, [quarters]);
-
-  const lessonIdsByQuarter = useMemo(() => {
-    return getLessonIdsByQuarter(lessons);
-  }, [lessons]);
-
-  const quarterCompletions = useMemo(() => {
-    return filterCompletionsByQuarter(completions, lessonIdsByQuarter, selectedQuarter);
-  }, [completions, lessonIdsByQuarter, selectedQuarter]);
 
   const scoreByStudent = useMemo(() => {
     return getStudentAverageScores(quarterCompletions);
@@ -78,7 +55,6 @@ export default function OverviewTab({
     ? Math.round(scoreByStudent.reduce((sum, score) => sum + score, 0) / scoreByStudent.length)
     : null;
   const passedCount = scoreByStudent.filter((score) => score >= 70).length;
-  const atRiskCount = scoreByStudent.filter((score) => score < 70).length;
   const quarterLabel =
     selectedQuarter === 'all' ? 'All quarters' : `Quarter ${selectedQuarter}`;
 
@@ -114,17 +90,6 @@ export default function OverviewTab({
         mostMissedQuestions={mostMissedQuestions}
       />
 
-      {atRiskCount > 0 && (
-        <View style={styles.riskBanner}>
-          <View style={styles.riskCount}>
-            <Text style={styles.riskCountText}>{atRiskCount}</Text>
-          </View>
-          <Text style={styles.riskText}>
-            {atRiskCount} {atRiskCount === 1 ? 'student has' : 'students have'} a recorded average below 70%
-          </Text>
-        </View>
-      )}
-
       {!!gradeCountError && <Text style={styles.error}>{gradeCountError}</Text>}
       {!!completionsError && <Text style={styles.error}>{completionsError}</Text>}
       {!isLoadingCompletions && completions.length === 0 && (
@@ -154,7 +119,7 @@ export default function OverviewTab({
                 accessibilityRole="button"
                 accessibilityState={{ selected: selectedQuarter === option.key }}
                 onPress={() => {
-                  setSelectedQuarter(option.key);
+                  onQuarterChange?.(option.key);
                   setIsQuarterMenuVisible(false);
                 }}
                 style={[
@@ -198,33 +163,6 @@ const styles = StyleSheet.create({
     fontFamily: Nunito.medium,
     fontSize: 12,
     textAlign: 'center',
-  },
-  riskBanner: {
-    alignItems: 'center',
-    backgroundColor: '#FEE2E2',
-    borderRadius: 18,
-    flexDirection: 'row',
-    gap: 10,
-    padding: 14,
-  },
-  riskCount: {
-    alignItems: 'center',
-    backgroundColor: '#C81E1E',
-    borderRadius: 18,
-    height: 36,
-    justifyContent: 'center',
-    width: 36,
-  },
-  riskCountText: {
-    color: Colors.surface,
-    fontFamily: Nunito.extraBold,
-    fontSize: 16,
-  },
-  riskText: {
-    color: '#991B1B',
-    flex: 1,
-    fontFamily: Nunito.bold,
-    fontSize: 12,
   },
   menuOverlay: {
     backgroundColor: 'rgba(15, 23, 42, 0.18)',

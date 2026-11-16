@@ -42,18 +42,29 @@ export const filterCompletionsByQuarter = (
   return completions.filter((completion) => lessonIds.has(completion.lessonId));
 };
 
-export const getStudentAverageScores = (quarterCompletions) => {
+export const getStudentAverageDetails = (quarterCompletions) => {
   const byStudent = new Map();
   quarterCompletions.forEach((completion) => {
     const score = getScore(completion);
     if (!completion.studentId || score === null) return;
-    if (!byStudent.has(completion.studentId)) byStudent.set(completion.studentId, []);
-    byStudent.get(completion.studentId).push(score);
+    if (!byStudent.has(completion.studentId)) {
+      byStudent.set(completion.studentId, {
+        studentId: completion.studentId,
+        name: completion.studentName || 'Student',
+        scores: [],
+      });
+    }
+    byStudent.get(completion.studentId).scores.push(score);
   });
-  return [...byStudent.values()].map((scores) =>
-    scores.reduce((sum, score) => sum + score, 0) / scores.length
-  );
+
+  return [...byStudent.values()].map(({ scores, ...student }) => ({
+    ...student,
+    averageScore: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+  }));
 };
+
+export const getStudentAverageScores = (quarterCompletions) =>
+  getStudentAverageDetails(quarterCompletions).map(({ averageScore }) => averageScore);
 
 export const getAnswerCounts = (quarterCompletions) => ({
   correctAnswerCount: quarterCompletions.reduce(

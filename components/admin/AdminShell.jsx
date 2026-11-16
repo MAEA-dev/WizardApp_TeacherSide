@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ADMIN_EMAIL } from '../../services/firebaseAuth';
 import { auth, db } from '../../services/firebaseConfig';
 import { Inter } from '../../constants/fonts';
+import AccountDrawer from '../home/AccountDrawer';
 
 const COLORS = {
   background: '#F4F1FF',
@@ -176,75 +176,14 @@ export function AdminShell({ activeTab, title, children }) {
         })}
       </View>
 
-      <Modal
-        animationType="fade"
-        transparent
+      <AccountDrawer
         visible={accountMenuVisible}
-        onRequestClose={() => setAccountMenuVisible(false)}
-      >
-        <View style={styles.menuOverlay}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close admin account menu"
-            onPress={() => setAccountMenuVisible(false)}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={styles.accountMenu}>
-            <View style={styles.menuHeading}>
-              <Text style={styles.menuTitle}>Account</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close account menu"
-                onPress={() => setAccountMenuVisible(false)}
-                hitSlop={8}
-                style={styles.closeButton}
-              >
-                <Feather name="x" size={19} color={COLORS.muted} />
-              </Pressable>
-            </View>
-            <View style={styles.accountSummary}>
-              <View style={styles.menuAvatar}>
-                <Text style={styles.avatarText}>AD</Text>
-              </View>
-              <View style={styles.accountDetails}>
-                <Text style={styles.accountName}>Admin</Text>
-                <Text style={styles.accountEmail} numberOfLines={1}>{accountEmail}</Text>
-              </View>
-            </View>
-            <View style={styles.menuDivider} />
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSigningOut}
-              onPress={() => leaveAdmin('switch user')}
-              style={styles.menuAction}
-            >
-              <Feather name="user" size={18} color={COLORS.primary} />
-              <Text style={styles.menuActionText}>
-                {isSigningOut ? 'Switching user...' : 'Switch user'}
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSigningOut}
-              onPress={() => leaveAdmin('log out')}
-              style={styles.menuAction}
-            >
-              <Feather name="log-out" size={18} color="#B42318" />
-              <Text style={styles.logoutActionText}>
-                {isSigningOut ? 'Logging out...' : 'Log out'}
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSigningOut}
-              onPress={() => setAccountMenuVisible(false)}
-              style={styles.cancelAction}
-            >
-              <Text style={styles.cancelActionText}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        name="Admin"
+        email={accountEmail}
+        footerLabel="Wizzar Admin"
+        onClose={() => setAccountMenuVisible(false)}
+        onLogout={() => leaveAdmin('log out')}
+      />
     </View>
   );
 }
@@ -380,110 +319,5 @@ const styles = StyleSheet.create({
   activeNavigationLabel: {
     color: COLORS.primary,
     fontFamily: Inter.semiBold,
-  },
-  menuOverlay: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: 'rgba(25, 22, 55, 0.38)',
-  },
-  accountMenu: {
-    backgroundColor: '#FFFFFF',
-    borderColor: COLORS.border,
-    borderRadius: 20,
-    borderWidth: 1,
-    elevation: 8,
-    maxWidth: 360,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    width: '100%',
-    shadowColor: '#24213F',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-  },
-  menuHeading: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  menuTitle: {
-    color: COLORS.text,
-    fontFamily: Inter.bold,
-    fontSize: 17,
-  },
-  closeButton: {
-    alignItems: 'center',
-    borderRadius: 18,
-    height: 34,
-    justifyContent: 'center',
-    width: 34,
-  },
-  accountSummary: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  menuAvatar: {
-    alignItems: 'center',
-    backgroundColor: '#FFF4C7',
-    borderRadius: 22,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-  },
-  accountDetails: {
-    flex: 1,
-  },
-  accountName: {
-    color: COLORS.text,
-    fontFamily: Inter.semiBold,
-    fontSize: 14,
-  },
-  accountEmail: {
-    color: COLORS.muted,
-    fontFamily: Inter.regular,
-    fontSize: 12,
-    marginTop: 3,
-  },
-  menuDivider: {
-    backgroundColor: COLORS.border,
-    height: 1,
-    marginVertical: 12,
-  },
-  menuAction: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    minHeight: 50,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  menuActionText: {
-    color: COLORS.text,
-    fontFamily: Inter.medium,
-    fontSize: 14,
-  },
-  logoutActionText: {
-    color: '#B42318',
-    fontFamily: Inter.medium,
-    fontSize: 14,
-  },
-  cancelAction: {
-    alignItems: 'center',
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: 'center',
-    marginTop: 10,
-    minHeight: 46,
-  },
-  cancelActionText: {
-    color: COLORS.muted,
-    fontFamily: Inter.semiBold,
-    fontSize: 13,
   },
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Colors } from "../../../constants/colors";
@@ -7,6 +7,12 @@ import SubjectTabs from "../../../components/subject/subjectTabs";
 import StudentsTab  from "../../../components/subject/tabs/StudentTabs/StudentsTabs";
 import OverviewTab from "../../../components/subject/tabs/OverviewTabs/OverviewTabs";
 import LessonsTab from "../../../components/subject/tabs/LessonTabs/LessonsTabs";
+import {
+    filterCompletionsByQuarter,
+    getLessonIdsByQuarter,
+    getQuarter,
+    getStudentAverageDetails,
+} from "../../../components/subject/tabs/OverviewTabs/overviewMetrics";
 import useSubjectDetails from "../../../hooks/useSubjectDetails";
 
 const TABS = [
@@ -18,6 +24,7 @@ const TABS = [
 export default function SubjectDetails(){
     const {id} = useLocalSearchParams();
     const [activeTab , setActiveTab] = useState("lessons");
+    const [selectedQuarter, setSelectedQuarter] = useState("all");
     const subjectId = Array.isArray(id) ? id[0] : id;
     const {
         subject,
@@ -33,6 +40,37 @@ export default function SubjectDetails(){
         lessonsError,
         students,
     } = useSubjectDetails(subjectId);
+
+    const quarters = useMemo(
+        () => [...new Set(lessons.map(getQuarter).filter(Boolean))].sort((a, b) => a - b),
+        [lessons]
+    );
+
+    useEffect(() => {
+        setSelectedQuarter((current) =>
+            current === "all" && quarters.includes(1)
+                ? 1
+                : current !== "all" && !quarters.includes(current)
+                    ? "all"
+                    : current
+        );
+    }, [quarters]);
+
+    const lessonIdsByQuarter = useMemo(
+        () => getLessonIdsByQuarter(lessons),
+        [lessons]
+    );
+    const quarterCompletions = useMemo(
+        () => filterCompletionsByQuarter(completions, lessonIdsByQuarter, selectedQuarter),
+        [completions, lessonIdsByQuarter, selectedQuarter]
+    );
+    const atRiskStudents = useMemo(
+        () =>
+            getStudentAverageDetails(quarterCompletions)
+                .filter(({ averageScore }) => averageScore < 70)
+                .sort((a, b) => a.averageScore - b.averageScore || a.name.localeCompare(b.name)),
+        [quarterCompletions]
+    );
 
     if (isLoading) {
         return (
@@ -66,7 +104,12 @@ export default function SubjectDetails(){
         <View style={{flex: 1, backgroundColor: Colors.bg}}>
             
             <View style={styles.header}>
-               <Header subjectId={subject.id} subjectName={subject.name} grade={subject.grade}/>
+               <Header
+                    subjectId={subject.id}
+                    subjectName={subject.name}
+                    grade={subject.grade}
+                    atRiskStudents={atRiskStudents}
+                />
                <SubjectTabs tabs={TABS} active={activeTab} onChange={setActiveTab}/>
             </View>
            
@@ -83,6 +126,10 @@ export default function SubjectDetails(){
                     <OverviewTab
                         lessons={lessons}
                         completions={completions}
+                        quarterCompletions={quarterCompletions}
+                        quarters={quarters}
+                        selectedQuarter={selectedQuarter}
+                        onQuarterChange={setSelectedQuarter}
                         gradeStudentCount={gradeStudentCount}
                         gradeCountError={gradeCountError}
                         isLoadingCompletions={isLoadingCompletions}
