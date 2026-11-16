@@ -36,7 +36,7 @@ const SUBJECT_COLORS = [
   '#00845F',
 ];
 
-const SUBJECT_LIST_MAX_HEIGHT = 280;
+const SUBJECT_LIST_MAX_HEIGHT = 220;
 
 const capitalizeSubjectName = (value = '') => {
   return value
@@ -235,6 +235,8 @@ export default function AdminSubjects() {
 
        
         <AdminCard style={styles.subjectList}>
+          <AdminText style={styles.subjectListTitle}>Subject List</AdminText>
+
           {isLoading && (
             <ActivityIndicator color={AdminColors.primary} />
           )}
@@ -265,11 +267,11 @@ export default function AdminSubjects() {
                 ]}
               >
                 <View style={styles.subjectDetails}>
-                  <AdminText style={styles.subjectName}>
+                  <AdminText numberOfLines={1} style={styles.subjectName}>
                     {capitalizeSubjectName(subject.name)}
                   </AdminText>
 
-                  <AdminText style={styles.subjectGrade}>
+                  <AdminText numberOfLines={1} style={styles.subjectGrade}>
                     Grade {subject.grade}
                   </AdminText>
                 </View>
@@ -502,8 +504,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
+  subjectListTitle: {
+    color: AdminColors.text,
+    fontFamily: Inter.semiBold,
+    fontSize: 14,
+  },
+
   subjectScroll: {
-    maxHeight: SUBJECT_LIST_MAX_HEIGHT,
+    height: SUBJECT_LIST_MAX_HEIGHT,
   },
 
   subjectRow: {
@@ -512,6 +520,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1.5,
     borderRadius: 12,
+    minHeight: 58,
     paddingHorizontal: 12,
     paddingVertical: 12,
     marginBottom: 10,
